@@ -1,9 +1,11 @@
 package com.schoolmate.controller;
 
 import com.schoolmate.common.Result;
+import com.schoolmate.common.ResultCode;
 import com.schoolmate.context.UserContext;
 import com.schoolmate.dto.auth.LoginDTO;
 import com.schoolmate.dto.auth.RegisterDTO;
+import com.schoolmate.exception.BusinessException;
 import com.schoolmate.service.AuthService;
 import com.schoolmate.vo.auth.LoginVO;
 import com.schoolmate.vo.user.UserVO;
@@ -46,6 +48,9 @@ public class AuthController {
     @GetMapping("/me")
     public Result<UserVO> me() {
         Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED, "登录凭证无效或已过期，请重新登录");
+        }
         return Result.success(authService.getCurrentUser(userId));
     }
 }
