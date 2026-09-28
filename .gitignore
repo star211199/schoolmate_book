@@ -35,3 +35,6 @@ Thumbs.db
 *-local.yml
 .env
 .env.local
+
+# Vite build output
+dist/
