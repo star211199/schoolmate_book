@@ -23,6 +23,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '127.0.0.1',
+    // 端口被占用时直接报错，避免静默漂移到 5174 等端口造成困惑
+    strictPort: true,
     open: false,
     proxy: {
       // 开发期通过代理访问后端，规避跨域

@@ -63,8 +63,12 @@ mvn spring-boot:run
 - 服务地址：http://localhost:8080/api
 - 接口文档：http://localhost:8080/api/doc.html
 
-> 若环境变量中存在 `SERVER__PORT` 会覆盖 `server.port`，可用
-> `mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8080` 显式指定。
+> 端口已在 `pom.xml` 的 `spring-boot-maven-plugin` 中通过
+> `<jvmArguments>-Dserver.port=8080</jvmArguments>` 固定（JVM 系统属性优先级高于操作系统
+> 环境变量），因此环境中若存在 `SERVER__PORT` 也不会被覆盖，无需在命令行追加参数。
+>
+> 注意：在 **PowerShell** 中执行 `mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8080`
+> 会被拆词，报 `Unknown lifecycle phase ".run.arguments=..."`，请勿使用这种写法。
 
 ### 3. 启动前端
 
@@ -75,6 +79,9 @@ npm run dev
 ```
 
 访问 http://localhost:5173 （已配置 Vite 代理 `/api` → `http://localhost:8080`）。
+
+> 已启用 `strictPort: true`：若 5173 被占用会直接报错而不是漂移到其他端口。
+> 此时先结束占用进程（或关闭多余的 dev server 实例）再启动。
 
 ---
 

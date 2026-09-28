@@ -126,6 +126,13 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <!--
+                        以 JVM 系统属性固定端口：系统属性优先级高于操作系统环境变量，
+                        可避免环境中 SERVER__PORT / SERVER_PORT 覆盖 server.port。
+                        这样直接 `mvn spring-boot:run` 即为 8080，无需在命令行追加参数
+                        （PowerShell 下 -Dspring-boot.run.arguments=... 会被拆词导致报错）。
+                    -->
+                    <jvmArguments>-Dserver.port=8080</jvmArguments>
                 </configuration>
             </plugin>
         </plugins>
