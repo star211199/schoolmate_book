@@ -38,3 +38,5 @@ Thumbs.db
 
 # Vite build output
 dist/
+
+vite.config.js.timestamp-*
