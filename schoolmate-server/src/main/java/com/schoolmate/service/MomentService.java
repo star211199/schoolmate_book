@@ -50,4 +50,9 @@ public interface MomentService extends IService<Moment> {
      * 删除评论（评论人或管理员）。
      */
     void deleteComment(Long id);
+
+    /**
+     * 点赞 / 取消点赞（幂等切换），返回最新点赞数与当前点赞状态。
+     */
+    MomentVO toggleLike(Long momentId);
 }

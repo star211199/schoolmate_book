@@ -34,6 +34,15 @@ public class ClassMemberVO {
     @Schema(description = "真实姓名")
     private String realName;
 
+    @Schema(description = "星座")
+    private String constellation;
+
+    @Schema(description = "MBTI")
+    private String mbti;
+
+    @Schema(description = "个性签名")
+    private String motto;
+
     @Schema(description = "班级内角色 OWNER / MEMBER")
     private String memberRole;
 

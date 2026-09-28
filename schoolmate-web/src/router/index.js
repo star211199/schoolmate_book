@@ -44,6 +44,12 @@ const routes = [
         meta: { title: '个人中心', requiresAuth: true }
       },
       {
+        path: 'h5',
+        name: 'H5',
+        component: () => import('@/views/h5/H5View.vue'),
+        meta: { title: 'H5 同学录', requiresAuth: true }
+      },
+      {
         path: 'admin',
         name: 'Admin',
         component: () => import('@/views/admin/AdminLayout.vue'),

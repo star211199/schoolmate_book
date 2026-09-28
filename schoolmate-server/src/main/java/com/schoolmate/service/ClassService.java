@@ -67,4 +67,9 @@ public interface ClassService extends IService<ClassInfo> {
      * 校验用户是否为班级成员，非成员抛异常。
      */
     void assertMember(Long classId, Long userId);
+
+    /**
+     * 查询班级成员中未来 N 天内过生日的人（按天数升序）。
+     */
+    java.util.List<com.schoolmate.vo.cls.BirthdayReminderVO> birthdayReminders(Long classId, int withinDays);
 }

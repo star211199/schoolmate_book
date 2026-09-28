@@ -19,6 +19,9 @@ public class ClassUpdateDTO {
     @Schema(description = "年级")
     private String grade;
 
+    @Schema(description = "毕业日期 yyyy-MM-dd")
+    private java.time.LocalDate graduationDate;
+
     @Schema(description = "专业")
     private String major;
 

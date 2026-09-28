@@ -22,6 +22,12 @@ public class ClassVO {
     @Schema(description = "年级")
     private String grade;
 
+    @Schema(description = "毕业日期")
+    private java.time.LocalDate graduationDate;
+
+    @Schema(description = "距毕业天数（未设置毕业日期为 null，已过为负数）")
+    private Long daysToGraduation;
+
     @Schema(description = "专业")
     private String major;
 

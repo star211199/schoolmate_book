@@ -38,6 +38,12 @@ public class MomentVO {
     @Schema(description = "评论数量")
     private Long commentCount;
 
+    @Schema(description = "点赞数量")
+    private Long likeCount;
+
+    @Schema(description = "当前用户是否已点赞")
+    private Boolean liked;
+
     @Schema(description = "审核状态")
     private String auditStatus;
 

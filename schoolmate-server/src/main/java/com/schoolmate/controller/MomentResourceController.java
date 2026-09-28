@@ -58,4 +58,10 @@ public class MomentResourceController {
     public Result<CommentVO> createComment(@PathVariable Long id, @Valid @RequestBody CommentCreateDTO dto) {
         return Result.success(momentService.createComment(id, dto), "评论成功");
     }
+
+    @Operation(summary = "点赞 / 取消点赞（切换）")
+    @PostMapping("/{id}/like")
+    public Result<MomentVO> toggleLike(@PathVariable Long id) {
+        return Result.success(momentService.toggleLike(id));
+    }
 }

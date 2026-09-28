@@ -34,3 +34,8 @@ export function createComment(momentId, data) {
 export function deleteComment(id) {
   return request.delete(`/comments/${id}`)
 }
+
+/** 点赞 / 取消点赞（切换） */
+export function toggleLike(momentId) {
+  return request.post(`/moments/${momentId}/like`)
+}

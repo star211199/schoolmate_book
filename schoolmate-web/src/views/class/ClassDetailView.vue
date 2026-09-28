@@ -1,25 +1,44 @@
 <template>
   <div class="page-container" v-loading="loading">
-    <el-card v-if="classInfo" class="card-shadow class-header">
-      <div class="header-main">
-        <div>
-          <h2>{{ classInfo.className }}</h2>
+    <div v-if="classInfo" class="class-hero glass-card">
+      <div class="hero-banner">
+        <div class="hero-left">
+          <h2 class="anime-title">{{ classInfo.className }}</h2>
           <div class="tags">
-            <el-tag size="small">{{ classInfo.grade || '未填年级' }}</el-tag>
-            <el-tag size="small" type="info">{{ classInfo.major || '未填专业' }}</el-tag>
-            <el-tag size="small" type="success">{{ classInfo.memberCount }} 位成员</el-tag>
+            <span class="anime-tag">{{ classInfo.grade || '未填年级' }}</span>
+            <span class="anime-tag">{{ classInfo.major || '未填专业' }}</span>
+            <span class="anime-tag">{{ classInfo.memberCount }} 位成员</span>
           </div>
           <p class="desc text-muted">{{ classInfo.description || '这个班级还没有简介~' }}</p>
-        </div>
-        <div class="actions">
           <el-tooltip content="复制邀请码邀请同学加入" placement="top">
-            <el-button plain @click="copyInviteCode">
+            <el-button plain size="small" @click="copyInviteCode">
               <el-icon><Link /></el-icon> 邀请码 {{ classInfo.inviteCode }}
             </el-button>
           </el-tooltip>
         </div>
+
+        <!-- 毕业倒计时 -->
+        <div v-if="classInfo.daysToGraduation != null" class="countdown-card">
+          <div class="countdown-label">🎓 毕业倒计时</div>
+          <div class="countdown-days">
+            <span class="num">{{ countdownText.num }}</span>
+            <span class="unit">{{ countdownText.unit }}</span>
+          </div>
+          <div class="countdown-date">{{ classInfo.graduationDate }}</div>
+        </div>
       </div>
-    </el-card>
+
+      <!-- 生日提醒 -->
+      <div v-if="birthdays.length" class="birthday-bar">
+        <span class="birthday-icon">🎂</span>
+        <div v-for="b in birthdays.slice(0, 3)" :key="b.userId" class="birthday-item">
+          <el-avatar :size="28" :src="b.avatar">{{ (b.nickname || 'U').charAt(0) }}</el-avatar>
+          <span class="bname">{{ b.nickname }}</span>
+          <span class="bdays" v-if="b.today">今天生日！🎉</span>
+          <span class="bdays" v-else>{{ b.daysUntil }} 天后生日</span>
+        </div>
+      </div>
+    </div>
 
     <el-card class="card-shadow tabs-card">
       <el-tabs v-model="activeTab">
@@ -28,12 +47,18 @@
           <el-row :gutter="12">
             <el-col v-for="m in members" :key="m.id" :xs="12" :sm="8" :md="6">
               <div class="member-card" @click="$router.push(`/users/${m.userId}`)">
-                <el-avatar :size="56" :src="m.avatar">
+                <el-avatar :size="64" :src="m.avatar" class="avatar-ring">
                   {{ (m.nickname || 'U').charAt(0) }}
                 </el-avatar>
-                <div class="member-name">{{ m.realName || m.nickname }}</div>
-                <el-tag v-if="m.memberRole === 'OWNER'" size="small" type="warning">班长</el-tag>
-                <div class="text-muted">{{ m.nickname }}</div>
+                <div class="member-name">
+                  {{ m.realName || m.nickname }}
+                  <el-tag v-if="m.memberRole === 'OWNER'" size="small" type="warning" effect="plain">班长</el-tag>
+                </div>
+                <div class="member-motto">{{ m.motto || '还未留下签名' }}</div>
+                <div class="member-tags">
+                  <span v-if="m.constellation" class="anime-tag">{{ m.constellation }}</span>
+                  <span v-if="m.mbti" class="anime-tag">{{ m.mbti }}</span>
+                </div>
               </div>
             </el-col>
             <el-col v-if="members.length === 0" :span="24">
@@ -151,6 +176,14 @@
                 </div>
                 <div class="moment-content">{{ mm.content }}</div>
                 <div class="moment-actions">
+                  <el-button
+                    link
+                    size="small"
+                    :class="{ 'like-btn': true, liked: mm.liked }"
+                    @click="handleLike(mm)"
+                  >
+                    {{ mm.liked ? '❤️' : '🤍' }} {{ mm.likeCount || 0 }}
+                  </el-button>
                   <el-button link size="small" @click="toggleComments(mm)">
                     <el-icon><ChatDotRound /></el-icon> 评论 {{ mm.commentCount }}
                   </el-button>
@@ -238,11 +271,12 @@ import { useUserStore } from '@/stores/user'
 import {
   getClassDetail,
   listMembers,
+  birthdayReminders,
   createClass
 } from '@/api/class'
 import { pageMessages, createMessage, deleteMessage } from '@/api/message'
 import { listAlbums, createAlbum, listPhotos, uploadPhoto, deletePhoto } from '@/api/album'
-import { pageMoments, createMoment, deleteMoment, listComments, createComment } from '@/api/moment'
+import { pageMoments, createMoment, deleteMoment, listComments, createComment, toggleLike } from '@/api/moment'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const route = useRoute()
@@ -253,6 +287,15 @@ const loading = ref(false)
 const activeTab = ref('members')
 const classInfo = ref(null)
 const members = ref([])
+const birthdays = ref([])
+
+const countdownText = computed(() => {
+  const d = classInfo.value?.daysToGraduation
+  if (d == null) return { num: '—', unit: '' }
+  if (d < 0) return { num: Math.abs(d), unit: '天前毕业' }
+  if (d === 0) return { num: '今天', unit: '毕业！' }
+  return { num: d, unit: '天' }
+})
 
 // 留言
 const messages = ref([])
@@ -275,7 +318,7 @@ const moments = ref([])
 const momentContent = ref('')
 const postingMoment = ref(false)
 
-const defaultCover = ''
+const defaultCover = '/images/album-sample.png'
 
 function formatTime(t) {
   if (!t) return ''
@@ -299,6 +342,7 @@ async function loadAll() {
     members.value = memberRes.data
     albums.value = albumRes.data
     moments.value = momentRes.data.records
+    loadBirthdays()
     await loadMessages()
   } finally {
     loading.value = false
@@ -422,6 +466,21 @@ async function postComment(moment) {
   moment.commentCount = res.data.length
 }
 
+async function loadBirthdays() {
+  try {
+    const res = await birthdayReminders(classInfo.value?.id ?? classId.value, 365)
+    birthdays.value = res.data || []
+  } catch (e) {
+    birthdays.value = []
+  }
+}
+
+async function handleLike(moment) {
+  const res = await toggleLike(moment.id)
+  moment.likeCount = res.data.likeCount
+  moment.liked = res.data.liked
+}
+
 function copyInviteCode() {
   navigator.clipboard?.writeText(classInfo.value.inviteCode)
   ElMessage.success('邀请码已复制：' + classInfo.value.inviteCode)
@@ -431,48 +490,137 @@ onMounted(loadAll)
 </script>
 
 <style scoped>
-.class-header {
+.class-hero {
   margin-bottom: 16px;
+  padding: 24px;
 }
 
-.header-main {
+.hero-banner {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
-.header-main h2 {
-  margin: 0 0 8px;
+.hero-left h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
 }
 
 .tags {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
 .desc {
-  margin: 0;
+  margin: 0 0 12px;
+}
+
+.countdown-card {
+  text-align: center;
+  padding: 18px 32px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffe5ec, #eee8ff);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 24px rgba(251, 111, 146, 0.18);
+}
+
+.countdown-label {
+  font-size: 13px;
+  color: var(--ink-light);
+  letter-spacing: 2px;
+}
+
+.countdown-days .num {
+  font-size: 44px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--sakura-primary-dark), #a08fd8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.countdown-days .unit {
+  font-size: 15px;
+  color: var(--ink);
+  margin-left: 4px;
+}
+
+.countdown-date {
+  font-size: 12px;
+  color: var(--ink-light);
+}
+
+.birthday-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(255, 229, 236, 0.6);
+}
+
+.birthday-icon {
+  font-size: 20px;
+}
+
+.birthday-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bname {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bdays {
+  font-size: 12px;
+  color: var(--sakura-primary-dark);
 }
 
 .member-card {
   text-align: center;
-  padding: 16px 8px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  padding: 20px 12px;
+  border-radius: 16px;
   margin-bottom: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.9);
 }
 
 .member-card:hover {
-  border-color: var(--el-color-primary);
-  background: #f5faff;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(251, 111, 146, 0.18);
+  background: #fff;
 }
 
 .member-name {
-  margin-top: 8px;
-  font-weight: 600;
+  margin-top: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.member-motto {
+  font-size: 12px;
+  color: var(--ink-light);
+  margin: 6px 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-tags {
+  min-height: 24px;
 }
 
 .message-editor,
@@ -604,5 +752,18 @@ onMounted(loadAll)
   display: flex;
   justify-content: center;
   margin-top: 12px;
+}
+
+.like-btn {
+  transition: transform 0.15s;
+}
+
+.like-btn:active {
+  transform: scale(1.3);
+}
+
+.like-btn.liked {
+  color: var(--sakura-primary-dark);
+  font-weight: 700;
 }
 </style>

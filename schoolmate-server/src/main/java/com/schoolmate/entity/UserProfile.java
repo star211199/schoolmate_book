@@ -38,6 +38,27 @@ public class UserProfile {
     /** 生日 */
     private LocalDate birthday;
 
+    /** 星座（根据生日自动计算） */
+    private String constellation;
+
+    /** MBTI 人格类型 */
+    private String mbti;
+
+    /** 兴趣爱好（JSON 数组字符串） */
+    private String hobbies;
+
+    /** 技能标签（JSON 数组字符串） */
+    private String skills;
+
+    /** 毕业寄语 */
+    private String graduationMessage;
+
+    /** 社交链接（JSON 对象字符串） */
+    private String socialLinks;
+
+    /** 个人主页封面图 URL */
+    private String coverImage;
+
     /** 籍贯 */
     private String hometown;
 

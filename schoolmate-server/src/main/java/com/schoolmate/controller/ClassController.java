@@ -96,4 +96,12 @@ public class ClassController {
         classService.removeMember(id, userId);
         return Result.success(null, "已移出班级");
     }
+
+    @Operation(summary = "生日提醒：未来 N 天内过生日的成员")
+    @GetMapping("/{id}/birthday-reminders")
+    public Result<List<com.schoolmate.vo.cls.BirthdayReminderVO>> birthdayReminders(
+        @PathVariable Long id,
+        @RequestParam(defaultValue = "30") int withinDays) {
+        return Result.success(classService.birthdayReminders(id, withinDays));
+    }
 }

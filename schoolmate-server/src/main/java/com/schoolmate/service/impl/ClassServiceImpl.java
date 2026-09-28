@@ -27,6 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -104,6 +106,7 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
         assertOwnerOrAdmin(classInfo);
         classInfo.setClassName(dto.getClassName());
         classInfo.setGrade(dto.getGrade());
+        classInfo.setGraduationDate(dto.getGraduationDate());
         classInfo.setMajor(dto.getMajor());
         classInfo.setDescription(dto.getDescription());
         this.updateById(classInfo);
@@ -176,6 +179,9 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
             }
             if (profile != null) {
                 vo.setRealName(profile.getRealName());
+                vo.setConstellation(profile.getConstellation());
+                vo.setMbti(profile.getMbti());
+                vo.setMotto(profile.getMotto());
             }
             return vo;
         }).toList();
@@ -218,6 +224,47 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
         }
     }
 
+    @Override
+    public List<com.schoolmate.vo.cls.BirthdayReminderVO> birthdayReminders(Long classId, int withinDays) {
+        List<ClassMember> members = classMemberMapper.selectList(new LambdaQueryWrapper<ClassMember>()
+            .eq(ClassMember::getClassId, classId));
+        if (members.isEmpty()) {
+            return List.of();
+        }
+        List<Long> userIds = members.stream().map(ClassMember::getUserId).toList();
+        Map<Long, User> userMap = userService.listByIds(userIds).stream()
+            .collect(Collectors.toMap(User::getId, u -> u));
+        List<UserProfile> profiles = userProfileService.list(
+            new LambdaQueryWrapper<UserProfile>().in(UserProfile::getUserId, userIds));
+
+        LocalDate today = LocalDate.now();
+        return profiles.stream()
+            .filter(p -> p.getBirthday() != null)
+            .map(p -> {
+                // 计算今年生日，若已过则顺延到明年
+                LocalDate next = p.getBirthday().withYear(today.getYear());
+                if (next.isBefore(today)) {
+                    next = next.plusYears(1);
+                }
+                long days = ChronoUnit.DAYS.between(today, next);
+                User user = userMap.get(p.getUserId());
+                com.schoolmate.vo.cls.BirthdayReminderVO vo = new com.schoolmate.vo.cls.BirthdayReminderVO();
+                vo.setUserId(p.getUserId());
+                vo.setBirthday(p.getBirthday());
+                vo.setConstellation(p.getConstellation());
+                vo.setDaysUntil(days);
+                vo.setToday(days == 0);
+                if (user != null) {
+                    vo.setNickname(user.getNickname());
+                    vo.setAvatar(user.getAvatar());
+                }
+                return vo;
+            })
+            .filter(vo -> vo.getDaysUntil() <= withinDays)
+            .sorted(java.util.Comparator.comparing(com.schoolmate.vo.cls.BirthdayReminderVO::getDaysUntil))
+            .toList();
+    }
+
     /** 新增成员记录 */
     private void addMember(Long classId, Long userId, String role) {
         ClassMember member = new ClassMember();
@@ -250,6 +297,10 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
         vo.setId(classInfo.getId());
         vo.setClassName(classInfo.getClassName());
         vo.setGrade(classInfo.getGrade());
+        vo.setGraduationDate(classInfo.getGraduationDate());
+        if (classInfo.getGraduationDate() != null) {
+            vo.setDaysToGraduation(ChronoUnit.DAYS.between(LocalDate.now(), classInfo.getGraduationDate()));
+        }
         vo.setMajor(classInfo.getMajor());
         vo.setDescription(classInfo.getDescription());
         vo.setInviteCode(classInfo.getInviteCode());

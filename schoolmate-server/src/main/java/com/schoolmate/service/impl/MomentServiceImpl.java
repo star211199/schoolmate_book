@@ -13,9 +13,11 @@ import com.schoolmate.dto.moment.CommentCreateDTO;
 import com.schoolmate.dto.moment.MomentCreateDTO;
 import com.schoolmate.entity.Comment;
 import com.schoolmate.entity.Moment;
+import com.schoolmate.entity.MomentLike;
 import com.schoolmate.entity.User;
 import com.schoolmate.exception.BusinessException;
 import com.schoolmate.mapper.CommentMapper;
+import com.schoolmate.mapper.MomentLikeMapper;
 import com.schoolmate.mapper.MomentMapper;
 import com.schoolmate.service.ClassService;
 import com.schoolmate.service.MomentService;
@@ -48,6 +50,9 @@ public class MomentServiceImpl extends ServiceImpl<MomentMapper, Moment> impleme
 
     @Resource
     private CommentMapper commentMapper;
+
+    @Resource
+    private MomentLikeMapper momentLikeMapper;
 
     @Resource
     private ClassService classService;
@@ -172,6 +177,34 @@ public class MomentServiceImpl extends ServiceImpl<MomentMapper, Moment> impleme
         commentMapper.deleteById(id);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public MomentVO toggleLike(Long momentId) {
+        Long userId = UserContext.getUserId();
+        Moment moment = this.getById(momentId);
+        if (moment == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "动态不存在");
+        }
+        classService.assertMember(moment.getClassId(), userId);
+
+        // 幂等切换：已点赞则取消，未点赞则新增
+        LambdaQueryWrapper<MomentLike> wrapper = new LambdaQueryWrapper<MomentLike>()
+            .eq(MomentLike::getMomentId, momentId)
+            .eq(MomentLike::getUserId, userId);
+        MomentLike existing = momentLikeMapper.selectOne(wrapper);
+        if (existing != null) {
+            momentLikeMapper.deleteById(existing.getId());
+        } else {
+            MomentLike like = new MomentLike();
+            like.setMomentId(momentId);
+            like.setUserId(userId);
+            momentLikeMapper.insert(like);
+        }
+
+        MomentVO vo = convertToVO(moment, userService.getById(moment.getUserId()));
+        return vo;
+    }
+
     /** 图片 URL 列表序列化为 JSON 字符串 */
     private String toJson(List<String> imageUrls) {
         if (imageUrls == null || imageUrls.isEmpty()) {
@@ -200,6 +233,20 @@ public class MomentServiceImpl extends ServiceImpl<MomentMapper, Moment> impleme
         Long count = commentMapper.selectCount(new LambdaQueryWrapper<Comment>()
             .eq(Comment::getMomentId, moment.getId()));
         vo.setCommentCount(count == null ? 0L : count);
+
+        // 点赞数与当前用户点赞状态
+        Long likeCount = momentLikeMapper.selectCount(new LambdaQueryWrapper<MomentLike>()
+            .eq(MomentLike::getMomentId, moment.getId()));
+        vo.setLikeCount(likeCount == null ? 0L : likeCount);
+        Long currentUserId = UserContext.getUserId();
+        if (currentUserId != null) {
+            Long myLike = momentLikeMapper.selectCount(new LambdaQueryWrapper<MomentLike>()
+                .eq(MomentLike::getMomentId, moment.getId())
+                .eq(MomentLike::getUserId, currentUserId));
+            vo.setLiked(myLike != null && myLike > 0);
+        } else {
+            vo.setLiked(false);
+        }
         if (user != null) {
             vo.setNickname(user.getNickname());
             vo.setAvatar(user.getAvatar());

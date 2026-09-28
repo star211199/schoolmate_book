@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.schoolmate.common.PageResult;
 import com.schoolmate.common.ResultCode;
 import com.schoolmate.context.UserContext;
@@ -16,6 +19,7 @@ import com.schoolmate.exception.BusinessException;
 import com.schoolmate.mapper.UserMapper;
 import com.schoolmate.service.UserProfileService;
 import com.schoolmate.service.UserService;
+import com.schoolmate.utils.ConstellationUtil;
 import com.schoolmate.vo.user.UserProfileVO;
 import com.schoolmate.vo.user.UserVO;
 import jakarta.annotation.Resource;
@@ -42,6 +46,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private BCryptPasswordEncoder passwordEncoder;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public UserVO getUserById(Long id) {
@@ -113,6 +120,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         profile.setStudentNo(dto.getStudentNo());
         profile.setGender(dto.getGender());
         profile.setBirthday(dto.getBirthday());
+        // 生日变更时自动重算星座
+        profile.setConstellation(ConstellationUtil.of(dto.getBirthday()));
+        profile.setMbti(dto.getMbti());
+        profile.setHobbies(toJsonArray(dto.getHobbies()));
+        profile.setSkills(toJsonArray(dto.getSkills()));
+        profile.setGraduationMessage(dto.getGraduationMessage());
+        profile.setSocialLinks(toJsonObject(dto.getSocialLinks()));
+        profile.setCoverImage(dto.getCoverImage());
         profile.setHometown(dto.getHometown());
         profile.setCurrentCity(dto.getCurrentCity());
         profile.setContact(dto.getContact());
@@ -186,12 +201,75 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         vo.setStudentNo(profile.getStudentNo());
         vo.setGender(profile.getGender());
         vo.setBirthday(profile.getBirthday());
+        vo.setConstellation(profile.getConstellation());
+        vo.setMbti(profile.getMbti());
+        vo.setHobbies(fromJsonArray(profile.getHobbies()));
+        vo.setSkills(fromJsonArray(profile.getSkills()));
+        vo.setGraduationMessage(profile.getGraduationMessage());
+        vo.setSocialLinks(fromJsonObject(profile.getSocialLinks()));
+        vo.setCoverImage(profile.getCoverImage());
         vo.setHometown(profile.getHometown());
         vo.setCurrentCity(profile.getCurrentCity());
         vo.setContact(profile.getContact());
         vo.setMotto(profile.getMotto());
         vo.setEnrollmentYear(profile.getEnrollmentYear());
+        // 附带 user 表的头像与昵称
+        User user = this.getById(profile.getUserId());
+        if (Objects.nonNull(user)) {
+            vo.setAvatar(user.getAvatar());
+            vo.setNickname(user.getNickname());
+        }
         return vo;
+    }
+
+    /** 标签列表转 JSON 数组字符串存储 */
+    private String toJsonArray(java.util.List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "标签格式非法");
+        }
+    }
+
+    /** JSON 数组字符串转标签列表 */
+    private java.util.List<String> fromJsonArray(String json) {
+        if (!StringUtils.hasText(json)) {
+            return java.util.Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    /** 社交链接 Map 转 JSON 字符串存储 */
+    private String toJsonObject(java.util.Map<String, String> map) {
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "社交链接格式非法");
+        }
+    }
+
+    /** JSON 字符串转社交链接 Map */
+    private java.util.Map<String, String> fromJsonObject(String json) {
+        if (!StringUtils.hasText(json)) {
+            return java.util.Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            return java.util.Collections.emptyMap();
+        }
     }
 
     private String desensitizePhone(String phone) {

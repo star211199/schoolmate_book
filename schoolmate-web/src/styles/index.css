@@ -1,7 +1,29 @@
+/* =========================================================
+ * 二次元樱花主题（Sakura Anime Theme）
+ * 配色灵感：Moonlit Schoolyard —— 樱粉 / 薰衣草紫 / 天蓝 / 深灰蓝
+ * ========================================================= */
 :root {
-  --primary-color: #409eff;
-  --bg-color: #f5f7fa;
-  --card-radius: 12px;
+  /* 主题色 */
+  --sakura-primary: #ff8fab;
+  --sakura-primary-dark: #fb6f92;
+  --sakura-light: #ffc2d4;
+  --sakura-lighter: #ffe5ec;
+  --lavender: #b8c0ff;
+  --sky: #c9d6ff;
+  --ink: #4a4e69;
+  --ink-light: #6d6f8a;
+  --paper: #fff8fb;
+
+  /* Element Plus 主色覆盖 */
+  --el-color-primary: var(--sakura-primary);
+  --el-color-primary-light-3: #ffa9be;
+  --el-color-primary-light-5: var(--sakura-light);
+  --el-color-primary-light-7: #ffd9e2;
+  --el-color-primary-light-8: var(--sakura-lighter);
+  --el-color-primary-light-9: #fff0f4;
+  --el-color-primary-dark-2: var(--sakura-primary-dark);
+
+  --card-radius: 18px;
 }
 
 * {
@@ -13,22 +35,83 @@ body {
   padding: 0;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', Arial, sans-serif;
-  background-color: var(--bg-color);
-  color: #303133;
+  color: var(--ink);
+  /* 校园樱花背景 + 白色渐变罩层保证可读性 */
+  background:
+    linear-gradient(rgba(255, 248, 251, 0.82), rgba(255, 240, 245, 0.88)),
+    url('/images/bg-campus.png') center / cover no-repeat fixed;
+  min-height: 100vh;
 }
 
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 20px;
 }
 
-.card-shadow {
+/* 毛玻璃卡片 */
+.card-shadow,
+.glass-card {
   border-radius: var(--card-radius);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(251, 111, 146, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.glass-card {
+  padding: 24px;
 }
 
 .text-muted {
-  color: #909399;
+  color: var(--ink-light);
   font-size: 13px;
+}
+
+/* 二次元标签 */
+.anime-tag {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: linear-gradient(135deg, var(--sakura-lighter), #eee8ff);
+  color: var(--sakura-primary-dark);
+  border: 1px solid var(--sakura-light);
+  margin: 2px 4px 2px 0;
+}
+
+/* 圆角按钮统一 */
+.el-button {
+  border-radius: 999px;
+}
+
+/* 标题字体：圆润感 */
+.anime-title {
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--sakura-primary-dark), #a08fd8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 头像樱花环 */
+.avatar-ring {
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 3px var(--sakura-light), 0 4px 12px rgba(251, 111, 146, 0.25);
+  border-radius: 50%;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sakura-light);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }

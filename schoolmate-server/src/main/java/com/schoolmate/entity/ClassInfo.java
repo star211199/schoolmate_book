@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -27,6 +28,9 @@ public class ClassInfo {
 
     /** 年级 */
     private String grade;
+
+    /** 毕业日期（用于毕业倒计时） */
+    private LocalDate graduationDate;
 
     /** 专业 */
     private String major;

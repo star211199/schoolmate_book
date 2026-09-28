@@ -44,3 +44,8 @@ export function listMembers(classId) {
 export function removeMember(classId, userId) {
   return request.delete(`/classes/${classId}/members/${userId}`)
 }
+
+/** 生日提醒：未来 N 天内过生日的成员 */
+export function birthdayReminders(classId, withinDays = 30) {
+  return request.get(`/classes/${classId}/birthday-reminders`, { params: { withinDays } })
+}
