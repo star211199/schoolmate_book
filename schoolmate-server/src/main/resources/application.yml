@@ -1,0 +1,27 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+schoolmate:
+  jwt:
+    secret: schoolmate_book_jwt_secret_key_please_change_in_production_2026
+    expire-minutes: 1440
+  upload:
+    # 上传根目录（与 jar 分离，运行期可写）
+    base-dir: ./upload
+    access-prefix: /upload/**
+  content:
+    # 内容发布是否需要管理员审核：false 表示发布即通过（PASSED）
+    audit-enabled: false
