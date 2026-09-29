@@ -9,7 +9,9 @@ import { ElMessage } from 'element-plus'
  */
 const request = axios.create({
   baseURL: '/api',
-  timeout: 15000
+  // 公网演示走的是 1Mbps 的免费穿透隧道，首屏资源与首个接口请求会互相抢占带宽。
+  // 15s 在慢网上偏紧（曾经表现为点登录就报「网络异常」），放宽到 25s。
+  timeout: 25000
 })
 
 // 请求拦截器
@@ -49,7 +51,22 @@ request.interceptors.response.use(
       }, 800)
       return Promise.reject(error)
     }
-    ElMessage.error(error.response?.data?.message || '网络异常，请稍后重试')
+    // 区分「超时」「连不上」「服务端返回了非 2xx 但没有标准 message」三种情况，
+    // 避免所有失败都被笼统压成一句「网络异常」，掩盖真实状态码（排查时很致命）。
+    let msg = error.response?.data?.message
+    if (!msg) {
+      if (error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '')) {
+        msg = '请求超时，当前网络较慢，请重试'
+      } else if (!error.response) {
+        msg = '网络连接失败，请检查网络后重试'
+      } else {
+        // 后端返回了响应，但响应体不是标准 Result（网关错误页、CORS 拒绝等）
+        const raw = error.response.data
+        const text = typeof raw === 'string' ? raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : ''
+        msg = `请求失败（HTTP ${status}）${text ? '：' + text.slice(0, 60) : ''}`
+      }
+    }
+    ElMessage.error(msg || '网络异常，请稍后重试')
     return Promise.reject(error)
   }
 )
