@@ -42,3 +42,6 @@ dist/
 dist_build/
 
 vite.config.js.timestamp-*
+
+# README 界面截图：仅入库压缩后的 .webp，原始 PNG 单张 1~5MB 不入库
+/images/*.png
