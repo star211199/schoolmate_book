@@ -32,6 +32,24 @@ const routes = [
         meta: { title: '班级主页', requiresAuth: true }
       },
       {
+        path: 'chat',
+        name: 'Chat',
+        component: () => import('@/views/chat/ChatView.vue'),
+        meta: { title: '消息', requiresAuth: true }
+      },
+      {
+        path: 'contacts',
+        name: 'Contacts',
+        component: () => import('@/views/contact/FriendsView.vue'),
+        meta: { title: '联系人', requiresAuth: true }
+      },
+      {
+        path: 'theme',
+        name: 'Theme',
+        component: () => import('@/views/settings/ThemeView.vue'),
+        meta: { title: '主题装扮', requiresAuth: true }
+      },
+      {
         path: 'users/:id',
         name: 'UserProfile',
         component: () => import('@/views/profile/UserProfileView.vue'),

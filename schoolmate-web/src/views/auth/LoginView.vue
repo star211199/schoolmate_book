@@ -5,7 +5,7 @@
     <div class="login-wrapper">
       <!-- 左侧插画 -->
       <div class="illustration">
-        <img src="/images/login-illustration.png" alt="校园时光" />
+        <img src="/images/login-illustration.webp" alt="校园时光" />
         <div class="illustration-text">
           <h2>樱花落下的季节</h2>
           <p>把青春写进同学录，把回忆留在樱花树下</p>

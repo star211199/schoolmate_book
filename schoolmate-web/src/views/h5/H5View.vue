@@ -5,7 +5,7 @@
     <div class="phone-frame">
       <!-- 主视觉 -->
       <section class="hero">
-        <img class="hero-img" src="/images/h5-hero.png" alt="毕业纪念" />
+        <img class="hero-img" src="/images/h5-hero.webp" alt="毕业纪念" />
         <div class="hero-mask" />
         <div class="hero-text">
           <p class="hero-sub">🌸 青春不散场</p>

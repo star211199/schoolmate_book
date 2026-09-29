@@ -1,0 +1,227 @@
+/* =========================================================
+ * 多款二次元主题 —— CSS 变量三层体系
+ *
+ * 第一层 Palette（原始色板）：只定义色值，不含语义。
+ * 第二层 Semantic（语义变量）：--color-*，主题切换的实际操作对象。
+ * 第三层 Component（组件变量）：少数需要细调的地方，引用语义变量。
+ *
+ * 切换主题只改 <html data-theme="xxx">，第二层随之整体换一套值，
+ * 组件里永远只写 var(--color-*)，因此换主题无需改任何组件代码。
+ * ========================================================= */
+
+/* ---------------------------------------------------------
+ * 公共层：变量名映射与 Element Plus 联动
+ * 这一层不随主题变化，因为它引用的都是语义变量
+ * --------------------------------------------------------- */
+:root {
+  /* 兼容映射：把旧主题里的色板名指向语义变量，
+     这样存量组件里的 var(--sakura-primary) / var(--ink) 无需改动即可跟随主题 */
+  --sakura-primary: var(--color-brand);
+  --sakura-primary-dark: var(--color-brand-dark);
+  --sakura-light: var(--color-brand-light);
+  --sakura-lighter: var(--color-brand-lighter);
+  --lavender: var(--color-accent);
+  --sky: var(--color-accent-light);
+  --ink: var(--color-text);
+  --ink-light: var(--color-text-muted);
+  --paper: var(--color-surface);
+
+  --card-radius: 18px;
+
+  /* Element Plus 变量联动：
+     不覆盖的话，深色主题下弹出框、表格、下拉菜单仍然是白底黑字 */
+  --el-color-primary: var(--color-brand);
+  --el-color-primary-dark-2: var(--color-brand-dark);
+  --el-color-primary-light-3: color-mix(in srgb, var(--color-brand) 70%, var(--color-surface));
+  --el-color-primary-light-5: color-mix(in srgb, var(--color-brand) 50%, var(--color-surface));
+  --el-color-primary-light-7: color-mix(in srgb, var(--color-brand) 30%, var(--color-surface));
+  --el-color-primary-light-8: color-mix(in srgb, var(--color-brand) 20%, var(--color-surface));
+  --el-color-primary-light-9: color-mix(in srgb, var(--color-brand) 10%, var(--color-surface));
+
+  --el-bg-color: var(--color-surface);
+  --el-bg-color-overlay: var(--color-surface);
+  --el-bg-color-page: var(--color-bg);
+  --el-text-color-primary: var(--color-text);
+  --el-text-color-regular: var(--color-text-muted);
+  --el-text-color-secondary: var(--color-text-subtle);
+  --el-text-color-placeholder: var(--color-text-subtle);
+  --el-border-color: var(--color-border);
+  --el-border-color-light: var(--color-border);
+  --el-border-color-lighter: var(--color-border);
+  --el-border-color-extra-light: var(--color-border);
+  --el-fill-color: var(--color-surface-2);
+  --el-fill-color-light: var(--color-surface-2);
+  --el-fill-color-lighter: var(--color-surface-2);
+  --el-fill-color-blank: var(--color-surface);
+
+  --el-color-success: var(--color-online);
+  --el-color-danger: var(--color-danger);
+  --el-color-warning: var(--color-warning);
+}
+
+/* ---------------------------------------------------------
+ * 主题一：樱の和风（默认，浅色）
+ * 延续原有视觉，樱粉主色 + 薰衣草紫辅助
+ * --------------------------------------------------------- */
+:root,
+html[data-theme='sakura'] {
+  --color-bg: #fbf8fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #fdf2f6;
+  --color-text: #4a4e69;
+  --color-text-muted: #6d6f8a;
+  --color-text-subtle: #9b9db5;
+  --color-brand: #ff8fab;
+  --color-brand-dark: #fb6f92;
+  --color-brand-light: #ffc2d4;
+  --color-brand-lighter: #ffe5ec;
+  --color-accent: #b8c0ff;
+  --color-accent-light: #c9d6ff;
+  --color-border: rgba(251, 111, 146, 0.18);
+  --color-glass: rgba(255, 255, 255, 0.78);
+  --color-glass-border: rgba(255, 255, 255, 0.9);
+  --color-shadow: rgba(251, 111, 146, 0.12);
+  --color-bubble-me: #ff8fab;
+  --color-bubble-me-fg: #ffffff;
+  --color-bubble-other: #ffffff;
+  --color-bubble-other-fg: #4a4e69;
+  --color-overlay-top: rgba(255, 248, 251, 0.82);
+  --color-overlay-bottom: rgba(255, 240, 245, 0.88);
+  --color-online: #52c41a;
+  --color-danger: #f56c6c;
+  --color-warning: #e6a23c;
+}
+
+/* ---------------------------------------------------------
+ * 主题二：星海夜航（深色）
+ * 深靛蓝底 + 星辉蓝，适合夜间翻看回忆
+ * --------------------------------------------------------- */
+html[data-theme='starry'] {
+  --color-bg: #14152c;
+  --color-surface: #1e1f3d;
+  --color-surface-2: #262850;
+  --color-text: #e8eaff;
+  --color-text-muted: #9ba0c8;
+  --color-text-subtle: #6f7499;
+  --color-brand: #6c8cff;
+  --color-brand-dark: #5578f0;
+  --color-brand-light: #9db4ff;
+  --color-brand-lighter: #d7e0ff;
+  --color-accent: #9b8cff;
+  --color-accent-light: #b8adff;
+  --color-border: rgba(108, 140, 255, 0.24);
+  --color-glass: rgba(30, 31, 61, 0.85);
+  --color-glass-border: rgba(108, 140, 255, 0.25);
+  --color-shadow: rgba(0, 0, 0, 0.45);
+  --color-bubble-me: #6c8cff;
+  --color-bubble-me-fg: #ffffff;
+  --color-bubble-other: #2a2b4d;
+  --color-bubble-other-fg: #e8eaff;
+  --color-overlay-top: rgba(20, 21, 44, 0.88);
+  --color-overlay-bottom: rgba(16, 17, 36, 0.93);
+  --color-online: #4ade80;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+}
+
+/* ---------------------------------------------------------
+ * 主题三：紫夜霓虹（深色）
+ * 暗紫底 + 霓虹紫青，赛博感
+ * --------------------------------------------------------- */
+html[data-theme='neon'] {
+  --color-bg: #17111f;
+  --color-surface: #221830;
+  --color-surface-2: #2b1f3d;
+  --color-text: #f2e9ff;
+  --color-text-muted: #a892c4;
+  --color-text-subtle: #7a6796;
+  --color-brand: #a855f7;
+  --color-brand-dark: #8b3fd6;
+  --color-brand-light: #c98bfa;
+  --color-brand-lighter: #e7d4fd;
+  --color-accent: #22d3ee;
+  --color-accent-light: #6ee7f5;
+  --color-border: rgba(168, 85, 247, 0.3);
+  --color-glass: rgba(34, 24, 48, 0.85);
+  --color-glass-border: rgba(168, 85, 247, 0.32);
+  --color-shadow: rgba(168, 85, 247, 0.22);
+  --color-bubble-me: #a855f7;
+  --color-bubble-me-fg: #ffffff;
+  --color-bubble-other: #2b1f3d;
+  --color-bubble-other-fg: #e9dcff;
+  --color-overlay-top: rgba(23, 17, 31, 0.9);
+  --color-overlay-bottom: rgba(16, 11, 24, 0.94);
+  --color-online: #4ade80;
+  --color-danger: #fb7185;
+  --color-warning: #fbbf24;
+}
+
+/* ---------------------------------------------------------
+ * 主题四：薄荷森屿（浅色）
+ * 薄荷绿 + 青碧，清爽护眼
+ * --------------------------------------------------------- */
+html[data-theme='mint'] {
+  --color-bg: #f4fbf8;
+  --color-surface: #ffffff;
+  --color-surface-2: #eaf7f0;
+  --color-text: #1f3330;
+  --color-text-muted: #5c7a74;
+  --color-text-subtle: #8aa8a1;
+  --color-brand: #1d9e75;
+  --color-brand-dark: #15825f;
+  --color-brand-light: #5dc9c0;
+  --color-brand-lighter: #d7f2e8;
+  --color-accent: #5dc9c0;
+  --color-accent-light: #a8e5df;
+  --color-border: rgba(29, 158, 117, 0.18);
+  --color-glass: rgba(255, 255, 255, 0.8);
+  --color-glass-border: rgba(255, 255, 255, 0.92);
+  --color-shadow: rgba(29, 158, 117, 0.12);
+  --color-bubble-me: #1d9e75;
+  --color-bubble-me-fg: #ffffff;
+  --color-bubble-other: #eaf7f0;
+  --color-bubble-other-fg: #1f3330;
+  --color-overlay-top: rgba(244, 251, 248, 0.85);
+  --color-overlay-bottom: rgba(232, 246, 240, 0.9);
+  --color-online: #52c41a;
+  --color-danger: #f56c6c;
+  --color-warning: #e6a23c;
+}
+
+/* ---------------------------------------------------------
+ * 主题五：暮色橘颂（浅色）
+ * 暖橘 + 胭脂红，怀旧情绪，适合纪念册场景
+ * --------------------------------------------------------- */
+html[data-theme='sunset'] {
+  --color-bg: #fdf7f2;
+  --color-surface: #ffffff;
+  --color-surface-2: #f9ede2;
+  --color-text: #3a2a22;
+  --color-text-muted: #7d6355;
+  --color-text-subtle: #a6907f;
+  --color-brand: #e07a3f;
+  --color-brand-dark: #c9642c;
+  --color-brand-light: #f0a878;
+  --color-brand-lighter: #fbe3d1;
+  --color-accent: #c9556f;
+  --color-accent-light: #e893a5;
+  --color-border: rgba(224, 122, 63, 0.2);
+  --color-glass: rgba(255, 255, 255, 0.8);
+  --color-glass-border: rgba(255, 255, 255, 0.92);
+  --color-shadow: rgba(224, 122, 63, 0.14);
+  --color-bubble-me: #e07a3f;
+  --color-bubble-me-fg: #ffffff;
+  --color-bubble-other: #f9ede2;
+  --color-bubble-other-fg: #3a2a22;
+  --color-overlay-top: rgba(253, 247, 242, 0.85);
+  --color-overlay-bottom: rgba(249, 233, 221, 0.9);
+  --color-online: #52c41a;
+  --color-danger: #f56c6c;
+  --color-warning: #e6a23c;
+}
+
+/* 主题切换时的过渡：只给背景与文字加，避免大面积 transition 拖慢渲染 */
+html.theme-transition,
+html.theme-transition body {
+  transition: background-color 0.28s ease, color 0.28s ease;
+}

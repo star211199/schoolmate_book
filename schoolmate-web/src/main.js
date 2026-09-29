@@ -7,6 +7,8 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
 import router from './router'
+// 顺序不能反：themes.css 负责定义变量，index.css 负责使用变量
+import './styles/themes.css'
 import './styles/index.css'
 
 const app = createApp(App)

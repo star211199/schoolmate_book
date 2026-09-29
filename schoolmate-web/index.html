@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>大学同学录</title>
+    <script>
+      // 首屏防闪烁（FOUC）：必须在 CSS 加载之前同步执行。
+      // 若等到 Vue 挂载后再设置 data-theme，用户会先看到一帧默认主题再跳变。
+      // 这段脚本不能加 defer / async。
+      (function () {
+        try {
+          var theme = localStorage.getItem('schoolmate-theme') || 'sakura'
+          document.documentElement.setAttribute('data-theme', theme)
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'sakura')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

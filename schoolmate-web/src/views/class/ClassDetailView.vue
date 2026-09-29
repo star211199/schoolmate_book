@@ -318,7 +318,7 @@ const moments = ref([])
 const momentContent = ref('')
 const postingMoment = ref(false)
 
-const defaultCover = '/images/album-sample.png'
+const defaultCover = '/images/album-sample.webp'
 
 function formatTime(t) {
   if (!t) return ''

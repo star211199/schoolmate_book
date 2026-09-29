@@ -193,7 +193,7 @@ const mbtiOptions = [
   'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP'
 ]
 
-const coverOptions = ['/images/banner-graduation.png', '/images/bg-campus.png', '/images/album-sample.png']
+const coverOptions = ['/images/banner-graduation.webp', '/images/bg-campus.webp', '/images/album-sample.webp']
 
 async function loadAll() {
   loading.value = true

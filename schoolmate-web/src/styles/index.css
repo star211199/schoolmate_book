@@ -1,30 +1,9 @@
 /* =========================================================
- * 二次元樱花主题（Sakura Anime Theme）
- * 配色灵感：Moonlit Schoolyard —— 樱粉 / 薰衣草紫 / 天蓝 / 深灰蓝
+ * 全局样式（二次元主题基座）
+ *
+ * 注意：这里所有颜色都取自 themes.css 中的语义变量，
+ * 组件里不要写死色值，否则新增主题时会出现「换了主题但某块没变」的割裂感。
  * ========================================================= */
-:root {
-  /* 主题色 */
-  --sakura-primary: #ff8fab;
-  --sakura-primary-dark: #fb6f92;
-  --sakura-light: #ffc2d4;
-  --sakura-lighter: #ffe5ec;
-  --lavender: #b8c0ff;
-  --sky: #c9d6ff;
-  --ink: #4a4e69;
-  --ink-light: #6d6f8a;
-  --paper: #fff8fb;
-
-  /* Element Plus 主色覆盖 */
-  --el-color-primary: var(--sakura-primary);
-  --el-color-primary-light-3: #ffa9be;
-  --el-color-primary-light-5: var(--sakura-light);
-  --el-color-primary-light-7: #ffd9e2;
-  --el-color-primary-light-8: var(--sakura-lighter);
-  --el-color-primary-light-9: #fff0f4;
-  --el-color-primary-dark-2: var(--sakura-primary-dark);
-
-  --card-radius: 18px;
-}
 
 * {
   box-sizing: border-box;
@@ -35,11 +14,12 @@ body {
   padding: 0;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', Arial, sans-serif;
-  color: var(--ink);
-  /* 校园樱花背景 + 白色渐变罩层保证可读性 */
+  color: var(--color-text);
+  /* 校园背景图 + 主题化罩层：深色主题下罩层会压暗背景，保证文字可读 */
   background:
-    linear-gradient(rgba(255, 248, 251, 0.82), rgba(255, 240, 245, 0.88)),
-    url('/images/bg-campus.png') center / cover no-repeat fixed;
+    linear-gradient(var(--color-overlay-top), var(--color-overlay-bottom)),
+    url('/images/bg-campus.webp') center / cover no-repeat fixed;
+  background-color: var(--color-bg);
   min-height: 100vh;
 }
 
@@ -53,11 +33,11 @@ body {
 .card-shadow,
 .glass-card {
   border-radius: var(--card-radius);
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--color-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px rgba(251, 111, 146, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 32px var(--color-shadow);
+  border: 1px solid var(--color-glass-border);
 }
 
 .glass-card {
@@ -65,7 +45,7 @@ body {
 }
 
 .text-muted {
-  color: var(--ink-light);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -75,31 +55,31 @@ body {
   padding: 3px 12px;
   border-radius: 999px;
   font-size: 12px;
-  background: linear-gradient(135deg, var(--sakura-lighter), #eee8ff);
-  color: var(--sakura-primary-dark);
-  border: 1px solid var(--sakura-light);
+  background: var(--color-brand-lighter);
+  color: var(--color-brand-dark);
+  border: 1px solid var(--color-brand-light);
   margin: 2px 4px 2px 0;
 }
 
-/* 圆角按钮统一 */
+/* 圆形按钮 */
 .el-button {
   border-radius: 999px;
 }
 
-/* 标题字体：圆润感 */
+/* 标题：渐变文字 */
 .anime-title {
   font-weight: 700;
   letter-spacing: 1px;
-  background: linear-gradient(135deg, var(--sakura-primary-dark), #a08fd8);
+  background: linear-gradient(135deg, var(--color-brand-dark), var(--color-accent));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* 头像樱花环 */
+/* 头像光环 */
 .avatar-ring {
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 3px var(--sakura-light), 0 4px 12px rgba(251, 111, 146, 0.25);
+  border: 3px solid var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-brand-light), 0 4px 12px var(--color-shadow);
   border-radius: 50%;
 }
 
@@ -109,9 +89,40 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--sakura-light);
+  background: var(--color-brand-light);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* 在线状态小绿点 */
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-online);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  flex: none;
+}
+
+.online-dot.offline {
+  background: var(--color-text-subtle);
+}
+
+/* 未读红点 */
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
 }

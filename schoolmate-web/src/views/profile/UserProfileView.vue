@@ -7,7 +7,7 @@
     <template v-if="user">
       <!-- 封面 + 资料卡 -->
       <div class="profile-hero glass-card">
-        <div class="cover" :style="{ backgroundImage: `url(${profile?.coverImage || '/images/banner-graduation.png'})` }">
+        <div class="cover" :style="{ backgroundImage: `url(${profile?.coverImage || '/images/banner-graduation.webp'})` }">
           <div class="cover-mask" />
         </div>
         <div class="hero-body">
@@ -23,6 +23,26 @@
               <span v-if="profile?.enrollmentYear" class="anime-tag">{{ profile.enrollmentYear }} 级</span>
               <span v-if="profile?.currentCity" class="anime-tag">📍 {{ profile.currentCity }}</span>
               <span v-if="profile?.studentNo" class="anime-tag">学号 {{ profile.studentNo }}</span>
+            </div>
+
+            <!-- 社交操作：按钮文案由「我与 TA 的关系」决定，避免出现点了没反应的按钮 -->
+            <div class="hero-actions">
+              <template v-if="relation === 'SELF'">
+                <el-button type="primary" @click="$router.push('/profile')">编辑我的资料</el-button>
+              </template>
+              <template v-else-if="relation === 'IS_FRIEND'">
+                <el-button type="primary" @click="startChat">发消息</el-button>
+                <el-button @click="removeFriend">删除好友</el-button>
+              </template>
+              <template v-else-if="relation === 'PENDING_SENT'">
+                <el-button disabled>等待对方验证</el-button>
+              </template>
+              <template v-else-if="relation === 'PENDING_RECEIVED'">
+                <el-button type="primary" @click="$router.push('/contacts')">TA 想加你，去处理</el-button>
+              </template>
+              <template v-else>
+                <el-button type="primary" @click="addFriend">加好友</el-button>
+              </template>
             </div>
           </div>
         </div>
@@ -90,13 +110,22 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUser, getProfile } from '@/api/user'
+import { getRelation, sendFriendRequest, deleteFriend } from '@/api/friend'
+import { useChatStore } from '@/stores/chat'
 
 const route = useRoute()
+const router = useRouter()
+const chatStore = useChatStore()
 const loading = ref(false)
 const user = ref(null)
 const profile = ref(null)
+/** 我与该同学的关系 SELF/NONE/IS_FRIEND/PENDING_SENT/PENDING_RECEIVED */
+const relation = ref('NONE')
+
+const targetId = computed(() => user.value?.id || user.value?.userId)
 
 const hasSocial = computed(() => {
   const s = profile.value?.socialLinks
@@ -107,6 +136,36 @@ function genderText(g) {
   return { MALE: '男', FEMALE: '女', UNKNOWN: '保密' }[g] || g || '保密'
 }
 
+async function loadRelation(uid) {
+  try {
+    const res = await getRelation(uid)
+    relation.value = res.data || 'NONE'
+  } catch (e) {
+    relation.value = 'NONE'
+  }
+}
+
+async function addFriend() {
+  await sendFriendRequest({
+    toUserId: targetId.value,
+    message: '你好，我是同校同学，想加你为好友'
+  })
+  ElMessage.success('好友申请已发送')
+  relation.value = 'PENDING_SENT'
+}
+
+async function startChat() {
+  const sessionId = await chatStore.startPrivateChat(targetId.value)
+  router.push({ path: '/chat', query: { sessionId } })
+}
+
+async function removeFriend() {
+  await ElMessageBox.confirm('确定删除该好友吗？聊天记录会保留。', '提示', { type: 'warning' })
+  await deleteFriend(targetId.value)
+  ElMessage.success('已删除好友')
+  relation.value = 'NONE'
+}
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -114,6 +173,7 @@ onMounted(async () => {
     const [userRes, profileRes] = await Promise.all([getUser(uid), getProfile(uid)])
     user.value = userRes.data
     profile.value = profileRes.data
+    await loadRelation(uid)
   } finally {
     loading.value = false
   }
@@ -141,7 +201,14 @@ onMounted(async () => {
 .cover-mask {
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 30%, rgba(255, 255, 255, 0.9));
+  background: linear-gradient(transparent 30%, var(--color-surface));
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
 }
 
 .hero-body {
