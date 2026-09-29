@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -81,6 +83,38 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public Result<Void> handleMaxUploadSize(MaxUploadSizeExceededException e) {
         return Result.fail(ResultCode.PARAM_ERROR.getCode(), "上传文件超出大小限制（单文件最大 10MB）");
+    }
+
+    /**
+     * 请求路径不存在。
+     *
+     * <p>Spring Framework 6.1 起，未命中任何 Controller 的请求会落到兜底的静态资源处理器
+     * （{@code ResourceHttpRequestHandler}）上，由它抛出 {@link NoResourceFoundException}。
+     * 如果只靠下面的 {@link Exception} 兜底，这条本该是 404 的请求会变成 500
+     * 并在日志里打出一整段堆栈 —— 排查时极易被误认成服务端故障，实际只是路径写错。
+     * 这里单独拦截，返回 404 并只记一行 WARN。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoResourceFound(NoResourceFoundException e, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        log.warn("接口不存在：{} {}", request.getMethod(), uri);
+        return Result.fail(ResultCode.NOT_FOUND, "接口不存在：" + request.getMethod() + " " + uri);
+    }
+
+    /**
+     * 请求路径不存在（映射器层面）。
+     *
+     * <p>当 {@code spring.mvc.throw-exception-if-no-handler-found=true} 时，
+     * DispatcherServlet 会抛 {@link NoHandlerFoundException} 而不是走静态资源兜底，
+     * 同样应归为 404。这里一并兜住，避免两种配置下行为不一致。
+     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoHandlerFound(NoHandlerFoundException e, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        log.warn("接口不存在：{} {}", request.getMethod(), uri);
+        return Result.fail(ResultCode.NOT_FOUND, "接口不存在：" + request.getMethod() + " " + uri);
     }
 
     /** 兜底：未知异常 */
