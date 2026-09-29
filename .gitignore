@@ -38,5 +38,7 @@ Thumbs.db
 
 # Vite build output
 dist/
+# 本地临时构建产物（vite build --outDir dist_build，用于绕开环境限制）
+dist_build/
 
 vite.config.js.timestamp-*
