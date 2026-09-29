@@ -1,0 +1,66 @@
+server:
+  port: ${SERVER_PORT:8080}
+  # 只监听回环：后端由同机的前端代理访问，无需暴露到局域网
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  servlet:
+    # 与前端约定的 API 前缀，不要随意改动（前端 axios baseURL 与 WebSocket 路径都依赖它）
+    context-path: /api
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:schoolmate_book}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: ${DB_USERNAME:schoolmate}
+    password: ${DB_PASSWORD}
+    hikari:
+      pool-name: SchoolmateHikariPool
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      connection-timeout: 30000
+
+# MyBatis-Plus 配置（与 dev 保持一致，仅去掉 SQL 日志）
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*.xml
+
+schoolmate:
+  jwt:
+    # 生产环境必须替换，泄露后任何人都能伪造登录态
+    secret: ${JWT_SECRET}
+    expire-minutes: ${JWT_EXPIRE_MINUTES:1440}
+  upload:
+    # 相对 jar 所在目录，运行期可写
+    base-dir: ./upload
+    access-prefix: /upload/**
+  content:
+    audit-enabled: false
+
+logging:
+  level:
+    root: info
+    com.schoolmate: info
+    org.springframework.web: warn
+
+springdoc:
+  swagger-ui:
+    # 生产环境关闭接口文档，避免暴露内部接口
+    enabled: ${SWAGGER_ENABLED:false}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+knife4j:
+  enable: ${SWAGGER_ENABLED:false}
