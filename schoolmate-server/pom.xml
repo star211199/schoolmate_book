@@ -33,6 +33,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- WebSocket（原生 TextWebSocketHandler，用于聊天实时推送） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- 参数校验（Hibernate Validator / jakarta.validation） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

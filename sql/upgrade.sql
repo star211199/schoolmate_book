@@ -46,7 +46,7 @@ UPDATE user_profile SET
   motto = '愿我们前程似锦，归来仍是少年',
   graduation_message = '四年的时光像樱花一样落下，感谢遇见的每一个人。未来的路，我们各自发光，顶峰相见！',
   social_links = '{"qq":"2157779530","wechat":"albot_2024","github":"star211199"}',
-  cover_image = '/images/banner-graduation.png'
+  cover_image = '/images/banner-graduation.webp'
 WHERE user_id = 1;
 
 UPDATE user_profile SET
@@ -61,9 +61,9 @@ UPDATE user_profile SET
   motto = '代码写得好，头发掉得少',
   graduation_message = '兄弟们在网吧五连坐的日子，这辈子都忘不了。祝大家前程似锦！',
   social_links = '{"qq":"123456789","wechat":"zhangsan_nb"}',
-  cover_image = '/images/bg-campus.png'
+  cover_image = '/images/bg-campus.webp'
 WHERE user_id = 2;
 
 -- user.avatar 同步（成员列表等场景直接读 user 表）
-UPDATE user SET avatar = '/images/avatar-girl.png' WHERE id = 1;
-UPDATE user SET avatar = '/images/avatar-boy.png' WHERE id = 2;
+UPDATE user SET avatar = '/images/avatar-girl.webp' WHERE id = 1;
+UPDATE user SET avatar = '/images/avatar-boy.webp' WHERE id = 2;

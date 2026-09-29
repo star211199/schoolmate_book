@@ -18,6 +18,7 @@ import com.schoolmate.exception.BusinessException;
 import com.schoolmate.mapper.ClassInfoMapper;
 import com.schoolmate.mapper.ClassMemberMapper;
 import com.schoolmate.service.ClassService;
+import com.schoolmate.service.GroupService;
 import com.schoolmate.service.UserProfileService;
 import com.schoolmate.service.UserService;
 import com.schoolmate.vo.cls.ClassMemberVO;
@@ -55,6 +56,9 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
     @Resource
     private UserProfileService userProfileService;
 
+    @Resource
+    private GroupService groupService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ClassVO createClass(ClassCreateDTO dto) {
@@ -71,6 +75,9 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
 
         // 创建者自动成为 OWNER 成员
         addMember(classInfo.getId(), userId, ROLE_OWNER);
+
+        // 班级与班级群一一对应：建班级时顺带把群建好，成员后续随班级成员自动同步
+        groupService.ensureClassGroup(classInfo.getId());
 
         return fillExtra(this.getById(classInfo.getId()));
     }
@@ -125,6 +132,8 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
         // 同步移除成员关系
         classMemberMapper.delete(new LambdaQueryWrapper<ClassMember>()
             .eq(ClassMember::getClassId, id));
+        // 班级已不存在，对应的班级群一并解散
+        groupService.dismissClassGroup(id);
     }
 
     @Override
@@ -143,6 +152,8 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
             throw new BusinessException(ResultCode.CONFLICT, "你已加入该班级");
         }
         addMember(classInfo.getId(), userId, ROLE_MEMBER);
+        // 加入班级即自动加入班级群
+        groupService.syncClassMember(classInfo.getId(), userId, true);
         return fillExtra(classInfo);
     }
 
@@ -201,6 +212,8 @@ public class ClassServiceImpl extends ServiceImpl<ClassInfoMapper, ClassInfo> im
         classMemberMapper.delete(new LambdaQueryWrapper<ClassMember>()
             .eq(ClassMember::getClassId, classId)
             .eq(ClassMember::getUserId, userId));
+        // 退出班级即自动退出班级群
+        groupService.syncClassMember(classId, userId, false);
     }
 
     @Override
