@@ -3,8 +3,10 @@ package com.schoolmate.controller;
 import com.schoolmate.common.Result;
 import com.schoolmate.common.ResultCode;
 import com.schoolmate.context.UserContext;
+import com.schoolmate.dto.auth.ForgotPasswordDTO;
 import com.schoolmate.dto.auth.LoginDTO;
 import com.schoolmate.dto.auth.RegisterDTO;
+import com.schoolmate.dto.auth.ResetPasswordDTO;
 import com.schoolmate.exception.BusinessException;
 import com.schoolmate.service.AuthService;
 import com.schoolmate.vo.auth.LoginVO;
@@ -52,5 +54,25 @@ public class AuthController {
             throw new BusinessException(ResultCode.UNAUTHORIZED, "登录凭证无效或已过期，请重新登录");
         }
         return Result.success(authService.getCurrentUser(userId));
+    }
+
+    @Operation(summary = "找回密码：发送邮箱验证码（10 分钟有效，需已绑定邮箱）")
+    @PostMapping("/forgot-password")
+    public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
+        authService.forgotPassword(dto);
+        return Result.success(null, "验证码已发送，请查收邮箱");
+    }
+
+    @Operation(summary = "凭邮箱验证码重置密码")
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
+        authService.resetPasswordByEmail(dto);
+        return Result.success(null, "密码重置成功，请使用新密码登录");
+    }
+
+    @Operation(summary = "是否已配置邮件服务（前端据此决定是否展示邮箱找回入口）")
+    @GetMapping("/mail-reset-enabled")
+    public Result<Boolean> mailResetEnabled() {
+        return Result.success(authService.mailResetEnabled());
     }
 }

@@ -22,6 +22,7 @@ import com.schoolmate.service.UserService;
 import com.schoolmate.utils.ConstellationUtil;
 import com.schoolmate.vo.user.UserProfileVO;
 import com.schoolmate.vo.user.UserVO;
+import cn.hutool.core.util.RandomUtil;
 import jakarta.annotation.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -161,6 +162,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         user.setStatus(status);
         this.updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String resetPasswordByAdmin(Long id) {
+        User user = this.getById(id);
+        if (user == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "用户不存在");
+        }
+        // 随机 8 位新密码；只在这里明文返回一次，库中仍只存 BCrypt 密文
+        String newPassword = RandomUtil.randomString(8);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        this.updateById(user);
+        return newPassword;
     }
 
     /**

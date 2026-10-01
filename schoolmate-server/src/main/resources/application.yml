@@ -13,6 +13,17 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  # 邮件服务（找回密码验证码，可选）。取消注释并填写 SMTP 信息后自动启用；
+  # 不配置 spring.mail.host 时 JavaMailSender 不会创建，找回密码接口会提示
+  # 「邮件服务未配置」，其余功能不受影响。
+  # QQ 邮箱示例（password 填 SMTP 授权码，不是登录密码）：
+  # mail:
+  #   host: smtp.qq.com
+  #   port: 465
+  #   username: your@qq.com
+  #   password: <SMTP授权码>
+  #   properties:
+  #     mail.smtp.ssl.enable: true
 
 schoolmate:
   jwt:

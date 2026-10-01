@@ -69,9 +69,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
             .addPathPatterns("/**")
             .excludePathPatterns(
-                // 认证相关：仅登录与注册放行，/auth/me 需要鉴权
+                // 认证相关：登录、注册、找回密码放行，/auth/me 需要鉴权
                 "/auth/login",
                 "/auth/register",
+                "/auth/forgot-password",
+                "/auth/reset-password",
+                "/auth/mail-reset-enabled",
                 // 接口文档
                 "/doc.html",
                 "/webjars/**",

@@ -50,4 +50,11 @@ public interface UserService extends IService<User> {
      * 管理员启停用户。
      */
     void updateStatus(Long id, String status);
+
+    /**
+     * 管理员重置用户密码。
+     *
+     * @return 生成的随机新密码（明文，仅返回这一次，请线下告知用户并提醒尽快修改）
+     */
+    String resetPasswordByAdmin(Long id);
 }

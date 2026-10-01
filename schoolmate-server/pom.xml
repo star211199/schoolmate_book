@@ -51,6 +51,12 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- 邮件（找回密码验证码；不配 spring.mail.host 时不会创建 JavaMailSender，功能自动降级） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- MySQL 驱动（Spring Boot 3 使用新坐标 mysql-connector-j） -->
         <dependency>
             <groupId>com.mysql</groupId>

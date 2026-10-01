@@ -56,6 +56,13 @@ public class AdminController {
         return Result.success(null, "操作成功");
     }
 
+    @Operation(summary = "重置用户密码（返回随机新密码，仅显示一次，请线下告知用户）")
+    @PutMapping("/users/{id}/reset-password")
+    public Result<String> resetUserPassword(@PathVariable Long id) {
+        assertAdmin();
+        return Result.success(userService.resetPasswordByAdmin(id), "密码已重置，请将新密码告知用户并提醒尽快修改");
+    }
+
     @Operation(summary = "仪表盘统计")
     @GetMapping("/stats")
     public Result<StatsVO> stats() {
