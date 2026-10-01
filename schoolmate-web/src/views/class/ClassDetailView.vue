@@ -284,7 +284,11 @@ const userStore = useUserStore()
 const classId = computed(() => Number(route.params.id))
 
 const loading = ref(false)
-const activeTab = ref('members')
+const activeTab = ref(
+  ['members', 'messages', 'albums', 'moments'].includes(route.query.tab)
+    ? route.query.tab
+    : 'members'
+)
 const classInfo = ref(null)
 const members = ref([])
 const birthdays = ref([])

@@ -10,6 +10,11 @@ export function updateUserStatus(id, status) {
   return request.put(`/admin/users/${id}/status`, null, { params: { status } })
 }
 
+/** 后台：重置用户密码（返回随机新密码，仅显示一次） */
+export function resetUserPassword(id) {
+  return request.put(`/admin/users/${id}/reset-password`)
+}
+
 /** 后台：仪表盘统计 */
 export function getStats() {
   return request.get('/admin/stats')

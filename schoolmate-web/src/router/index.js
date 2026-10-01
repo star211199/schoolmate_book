@@ -50,6 +50,18 @@ const routes = [
         meta: { title: '主题装扮', requiresAuth: true }
       },
       {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/notification/NotificationView.vue'),
+        meta: { title: '通知中心', requiresAuth: true }
+      },
+      {
+        path: 'capsules',
+        name: 'Capsules',
+        component: () => import('@/views/capsule/CapsuleView.vue'),
+        meta: { title: '时光胶囊', requiresAuth: true }
+      },
+      {
         path: 'users/:id',
         name: 'UserProfile',
         component: () => import('@/views/profile/UserProfileView.vue'),

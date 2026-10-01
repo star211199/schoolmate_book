@@ -34,7 +34,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column label="操作" width="230" fixed="right">
         <template #default="{ row }">
           <el-button
             :type="row.status === 'NORMAL' ? 'danger' : 'success'"
@@ -43,6 +43,9 @@
             @click="toggleStatus(row)"
           >
             {{ row.status === 'NORMAL' ? '禁用' : '启用' }}
+          </el-button>
+          <el-button type="warning" link size="small" @click="resetPassword(row)">
+            重置密码
           </el-button>
         </template>
       </el-table-column>
@@ -62,7 +65,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { pageUsers, updateUserStatus } from '@/api/admin'
+import { pageUsers, updateUserStatus, resetUserPassword } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
@@ -97,6 +100,20 @@ async function toggleStatus(row) {
   await updateUserStatus(row.id, nextStatus)
   ElMessage.success('操作成功')
   loadUsers()
+}
+
+async function resetPassword(row) {
+  await ElMessageBox.confirm(
+    `确定重置用户「${row.username}」的密码吗？重置后旧密码立即失效。`,
+    '重置密码',
+    { type: 'warning' }
+  )
+  const res = await resetUserPassword(row.id)
+  // 新密码只显示这一次，复制后请立即线下告知用户
+  await ElMessageBox.alert(res.data, '新密码（仅显示一次）', {
+    confirmButtonText: '我已保存',
+    dangerouslyUseHTMLString: false
+  })
 }
 
 onMounted(loadUsers)

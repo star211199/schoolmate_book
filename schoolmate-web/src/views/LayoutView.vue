@@ -30,6 +30,17 @@
       </el-menu>
 
       <div class="right">
+        <el-badge
+          v-if="isLogin"
+          :value="notifBadge"
+          :hidden="!notifBadge"
+          :max="99"
+          class="bell-badge"
+        >
+          <el-icon class="bell-icon" title="通知中心" @click="$router.push('/notifications')">
+            <Bell />
+          </el-icon>
+        </el-badge>
         <el-dropdown v-if="isLogin" @command="handleCommand">
           <span class="user-info">
             <el-avatar :size="32" :src="avatar" class="avatar-ring">
@@ -41,6 +52,8 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+              <el-dropdown-item command="capsules">时光胶囊</el-dropdown-item>
+              <el-dropdown-item command="notifications">通知中心</el-dropdown-item>
               <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -61,6 +74,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import { useThemeStore } from '@/stores/theme'
+import { useNotificationStore } from '@/stores/notification'
 import { ElMessageBox } from 'element-plus'
 import SakuraFall from '@/components/SakuraFall.vue'
 
@@ -69,15 +83,17 @@ const route = useRoute()
 const userStore = useUserStore()
 const chatStore = useChatStore()
 const themeStore = useThemeStore()
+const notificationStore = useNotificationStore()
 
 const isLogin = computed(() => userStore.isLogin)
 const isAdmin = computed(() => userStore.isAdmin)
 const userInfo = computed(() => userStore.userInfo)
 const avatar = computed(() => userInfo.value?.avatar || '')
 
-/** 导航栏红点：消息未读总数、待处理好友申请数 */
+/** 导航栏红点：消息未读总数、待处理好友申请数、通知中心未读数 */
 const chatBadge = computed(() => chatStore.totalUnread)
 const friendBadge = computed(() => chatStore.friendRequestCount)
+const notifBadge = computed(() => notificationStore.unreadCount)
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/admin')) return '/admin'
@@ -86,17 +102,23 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/chat')) return '/chat'
   if (route.path.startsWith('/contacts')) return '/contacts'
   if (route.path.startsWith('/theme')) return '/theme'
+  if (route.path.startsWith('/capsules')) return '/capsules'
   return '/classes'
 })
 
 function handleCommand(command) {
   if (command === 'profile') {
     router.push('/profile')
+  } else if (command === 'capsules') {
+    router.push('/capsules')
+  } else if (command === 'notifications') {
+    router.push('/notifications')
   } else if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
       .then(() => {
         // 先断开长连接，避免退出后仍在接收消息
         chatStore.disconnect()
+        notificationStore.reset()
         userStore.logout()
         router.push('/login')
       })
@@ -108,6 +130,7 @@ onMounted(() => {
   themeStore.init()
   // 进入主框架就建立 WebSocket 长连接，这样在任何页面都能实时收到新消息与通知
   chatStore.connect()
+  notificationStore.bindRealtime()
 })
 
 onBeforeUnmount(() => {
@@ -191,6 +214,25 @@ onBeforeUnmount(() => {
 .right {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+/* 通知铃铛 */
+.bell-badge {
+  display: flex;
+  align-items: center;
+}
+
+.bell-icon {
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.bell-icon:hover {
+  color: var(--el-color-primary);
+  transform: rotate(12deg);
 }
 
 .user-info {
