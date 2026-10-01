@@ -2,6 +2,13 @@
 -- schoolmate_book v3 增量脚本（在 v2-init.sql 基础上执行）
 -- 内容：通知中心表 notification
 -- 说明：时光胶囊复用 v2-init.sql 已建好的 time_capsule 表，无需重复建。
+--
+-- 注意：本脚本用 CREATE TABLE IF NOT EXISTS，是「增量升级」语义 ——
+-- 重复执行不会报错，但也**不会清空已有数据**。因此若在已有库上按
+-- init.sql -> upgrade.sql -> v2-init.sql -> upgrade-v3.sql 的顺序重建，
+-- 会发现 init/v2-init 覆盖的表都被 DROP 重建了，而 notification 里的旧数据还在。
+-- 想要彻底干净请改用 deploy/reset-demo.sh（它整库 DROP DATABASE 重建），
+-- 或手动 `DROP TABLE notification;` 后再执行本脚本。
 -- =====================================================================
 USE schoolmate_book;
 
