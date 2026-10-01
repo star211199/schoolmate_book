@@ -208,6 +208,11 @@
 - 分页返回：`{ total, pageNum, pageSize, totalPages, records }`
 - 实体不直接出参，统一经 VO 转换；手机号对外脱敏为 `138****8888`
 - **VO 里的主键字段名不统一**：`ChatSessionVO.id`、`ChatGroupVO.id`（都不是 `sessionId`/`groupId`）
-- **输入内容一律转义**：留言/评论/动态/消息落库前经 `HtmlUtils.htmlEscape`，前端用 `{{ }}` 插值，
-  严禁 `v-html`
+- **XSS 防护分两层，不要以为服务端全都转义了**：
+  - **聊天消息**（`TEXT` / `IMAGE` / `FILE`）在服务端落库前经 `HtmlUtils.htmlEscape` 转义，
+    因为前端聊天气泡为了保留换行使用了 `v-html`。**客户端可提交的消息类型必须全部转义**
+    —— 只转 `TEXT` 会留下「把 `msgType` 改成 `IMAGE` 再塞 HTML」的存储型 XSS 缺口；
+    同时 `SYSTEM` 是服务端专用类型，客户端提交会被降级为 `TEXT`，避免伪造系统提示。
+  - **留言 / 评论 / 动态**不做服务端转义，靠前端插值（`{{ }}`）转义。因此新增这些内容的
+    展示位时**不要用 `v-html`**，否则需要先补上服务端转义。
 - 未知路径统一返回 HTTP 404 + `code 40400`，不会落到 500 兜底

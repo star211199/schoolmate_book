@@ -201,6 +201,32 @@ check("李四已读上报成功", r.get("code") == OK, r.get("message"))
 hit = find_session(tk["lisi"], custom_session_id)
 check("已读后李四群未读=0", bool(hit) and hit[0].get("unreadCount") == 0, hit[0] if hit else None)
 
+# 消息类型白名单 + 非 TEXT 类型转义。
+# 放在这里是因为下面几条消息会让未读数变化，而上面的未读数断言要求恰好为 2。
+# 前端聊天气泡对 IMAGE / FILE / TEXT 走的是同一段 v-html，早期只对 TEXT 转义，
+# 于是把 msgType 改成 IMAGE 再把 HTML 塞进 content，就能在对方浏览器里执行脚本
+# —— 一条存储型 XSS。这里把两个入口都钉住。
+n1b = call("POST", "/chat/messages", token=tk["zhangsan"], body={
+    "sessionId": custom_session_id, "msgType": "IMAGE",
+    "content": "<img src=x onerror=alert(1)>", "clientMsgId": "g-003-img"})
+img_body = (n1b.get("data") or {}).get("content", "")
+check("IMAGE 类型内容同样被转义（防存储型 XSS）",
+      n1b.get("code") == OK and "<img" not in img_body and "&lt;img" in img_body, img_body)
+
+n1c = call("POST", "/chat/messages", token=tk["zhangsan"], body={
+    "sessionId": custom_session_id, "msgType": "FILE",
+    "content": "<script>alert(1)</script>", "clientMsgId": "g-003-file"})
+file_body = (n1c.get("data") or {}).get("content", "")
+check("FILE 类型内容同样被转义",
+      "<script" not in file_body and "&lt;script" in file_body, file_body)
+
+# 伪造系统提示（「xx 加入了群聊」这类）会让聊天记录被污染，客户端提交应被降级为普通文本
+n1d = call("POST", "/chat/messages", token=tk["zhangsan"], body={
+    "sessionId": custom_session_id, "msgType": "SYSTEM",
+    "content": "王五 加入了群聊", "clientMsgId": "g-003-sys"})
+check("客户端伪造 SYSTEM 消息被降级为 TEXT",
+      (n1d.get("data") or {}).get("msgType") == "TEXT", (n1d.get("data") or {}).get("msgType"))
+
 r = call("POST", "/groups/%s/members" % custom_group_id, token=tk["zhangsan"], body={"userIds": [ids["wangwu"]]})
 check("张三拉王五入群", r.get("code") == OK, r.get("message"))
 g = call("GET", "/groups/%s" % custom_group_id, token=tk["zhangsan"]).get("data", {})

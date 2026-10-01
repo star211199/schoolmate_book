@@ -314,6 +314,12 @@ public class ChatServiceImpl extends ServiceImpl<ChatMessageMapper, ChatMessage>
         }
 
         String msgType = StringUtils.hasText(dto.getMsgType()) ? dto.getMsgType().toUpperCase() : MSG_TEXT;
+        // 客户端只允许发这三种类型。SYSTEM 是服务端专用的（成员变动提示等），
+        // 放行会让任何人伪造「系统提示」污染聊天记录；其余未知类型同样一律按文本处理，
+        // 否则只要把 msgType 换个值就能绕过下面的内容转义。
+        if (!MSG_TEXT.equals(msgType) && !MSG_IMAGE.equals(msgType) && !MSG_FILE.equals(msgType)) {
+            msgType = MSG_TEXT;
+        }
         if (MSG_TEXT.equals(msgType) && !StringUtils.hasText(dto.getContent())) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "消息内容不能为空");
         }
@@ -660,9 +666,18 @@ public class ChatServiceImpl extends ServiceImpl<ChatMessageMapper, ChatMessage>
         }
     }
 
-    /** 文本消息落库前转义，作为 XSS 的兜底防线（前端用 v-html 渲染已转义内容） */
+    /**
+     * 消息内容落库前转义，作为 XSS 的兜底防线。
+     *
+     * <p><b>为什么不能只转 TEXT：</b>前端聊天气泡用 {@code v-html} 渲染（为了保留换行），
+     * 而 v-html 的渲染分支只区分 SYSTEM / RECALL / 其他，IMAGE、FILE 与 TEXT 走的是
+     * 同一段 {@code v-html}。此前只对 TEXT 转义，于是把 msgType 改成 IMAGE 再把
+     * HTML 塞进 content，就能在对方浏览器里执行脚本 —— 一条存储型 XSS。
+     * 所以：**客户端可提交的消息类型都必须转义**，只有服务端生成的 SYSTEM 例外
+     * （它在前端用插值渲染，且内容由服务端拼接）。
+     */
     private String escapeContent(String raw, String msgType) {
-        if (!StringUtils.hasText(raw) || !MSG_TEXT.equals(msgType)) {
+        if (!StringUtils.hasText(raw) || MSG_SYSTEM.equals(msgType)) {
             return raw;
         }
         return HtmlUtils.htmlEscape(raw);
