@@ -94,6 +94,24 @@ def login(username, password="123456"):
     return r["data"]["token"]
 
 
+def ensure_user(username, nickname):
+    """登录；账号不存在就先注册再登录。
+
+    admin / zhangsan 在种子数据里，lisi / wangwu 是历次测试注册出来的，
+    整库重建后会消失 —— 这里做一次幂等兜底，保证脚本在干净库上也能跑。
+    """
+    tk = login(username)
+    if tk:
+        return tk
+    r = call("POST", "/auth/register",
+             body={"username": username, "password": "123456", "nickname": nickname})
+    if r.get("code") != OK:
+        print("  注册 %s 失败: %s" % (username, r.get("message")))
+        return None
+    print("  已注册测试账号 %s（%s）" % (username, nickname))
+    return login(username)
+
+
 def unread(tk):
     r = call("GET", "/notifications/unread-count", tk)
     return r.get("data") if r.get("code") == OK else None
@@ -114,22 +132,16 @@ def latest_notif(tk, ntype):
     return None
 
 
-def ids():
-    """取种子用户 id"""
-    r = db_exec("USE %s; SELECT username, id FROM user WHERE deleted=0 "
-                "AND username IN ('admin','zhangsan','lisi','wangwu') ORDER BY id;" % MYSQL_DB)
-    return r
-
-
 # =====================================================================
 # 阶段一
 # =====================================================================
 def phase1():
     print("\n================ 阶段一：通知中心 + 时光胶囊（REST） ================\n")
 
-    admin, zs, ls, ww = (login("admin"), login("zhangsan"), login("lisi"), login("wangwu"))
+    admin, zs = ensure_user("admin", "超级管理员"), ensure_user("zhangsan", "张三")
+    ls, ww = ensure_user("lisi", "李四"), ensure_user("wangwu", "王五")
     if not all([admin, zs, ls, ww]):
-        print("  四个种子账号登录失败，无法继续")
+        print("  测试账号准备失败，无法继续（后端是否已启动？）")
         return 1
 
     # 取用户 id（用于权限断言与库清理）
@@ -261,12 +273,15 @@ def phase1():
     check("全部标记已读 → code 20000", r.get("code") == OK, r.get("message"))
     check("  admin 未读数归零", unread(admin) == 0, unread(admin))
 
-    # 越权：不能读别人的通知
-    if mid:
-        r = call("GET", "/notifications", ww)
-        others = r.get("data", {}).get("records", []) or []
-        check("通知列表只含本人数据", all(x.get("userId") in (None, ww_id) for x in others),
-              "共 %s 条" % len(others))
+    # 越权：通知列表必须只含本人数据。
+    # 注意 NotificationVO 里不含 userId 字段，所以不能靠「逐条比对 userId」来断言 ——
+    # 真正有效的验证是「别人的通知 ID 不会出现在我的列表里」。
+    admin_ids = {x.get("id") for x in (notif_list(admin, pageNum=1, pageSize=50).get("records") or [])}
+    r = call("GET", "/notifications?pageNum=1&pageSize=50", ww)
+    ww_ids = {x.get("id") for x in (r.get("data", {}).get("records") or [])}
+    check("通知列表只含本人数据（他人通知 ID 不出现）",
+          bool(admin_ids) and not (admin_ids & ww_ids),
+          "admin=%s ww=%s 交集=%s" % (len(admin_ids), len(ww_ids), sorted(admin_ids & ww_ids)))
     r = call("PUT", "/notifications/999999/read", ww)
     check("标记不存在的通知 → 不报 500", r.get("code") in (40400, 40300, 40001), r.get("code"))
 
@@ -372,7 +387,7 @@ def phase2():
         st = json.load(f)
     self_id, pub_id = st["self_id"], st["pub_id"]
 
-    zs, ls = login("zhangsan"), login("lisi")
+    zs, ls = ensure_user("zhangsan", "张三"), ensure_user("lisi", "李四")
     if not zs or not ls:
         return 1
 
