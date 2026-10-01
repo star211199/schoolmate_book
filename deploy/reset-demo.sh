@@ -37,7 +37,7 @@ echo "==> 重建数据库 $DB_NAME"
 "${M[@]}" -e "DROP DATABASE IF EXISTS \`$DB_NAME\`;
               CREATE DATABASE \`$DB_NAME\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
 
-for f in init.sql upgrade.sql v2-init.sql; do
+for f in init.sql upgrade.sql v2-init.sql upgrade-v3.sql; do
   echo "==> 导入 $f"
   "${M[@]}" "$DB_NAME" < "$BASE/app/sql/$f" 2>&1 | grep -viE "already exists|Duplicate" || true
 done
@@ -61,6 +61,8 @@ echo "==> 残留数据检查（应当全部为 0）"
   UNION ALL SELECT 'friendship',    COUNT(*) FROM friendship
   UNION ALL SELECT 'friend_request',COUNT(*) FROM friend_request
   UNION ALL SELECT 'moment',        COUNT(*) FROM moment
+  UNION ALL SELECT 'notification',  COUNT(*) FROM notification
+  UNION ALL SELECT 'time_capsule',  COUNT(*) FROM time_capsule
   UNION ALL SELECT 'user',          COUNT(*) FROM user;"
 
 echo "==> 表数量：$("${M[@]}" -N -e "select count(*) from information_schema.tables where table_schema='$DB_NAME'")"

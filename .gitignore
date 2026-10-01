@@ -45,3 +45,7 @@ vite.config.js.timestamp-*
 
 # README 界面截图：仅入库压缩后的 .webp，原始 PNG 单张 1~5MB 不入库
 /images/*.png
+
+# 回归脚本运行期产物（阶段间状态传递、临时导出的 OpenAPI 快照）
+docs/.v3_state.json
+docs/.openapi.json

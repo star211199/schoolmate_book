@@ -3,6 +3,15 @@
 大学同学录（Spring Boot 3.3.5 + MyBatis-Plus 3.5.7 + JWT / Vue 3 + Vite + Pinia + Element Plus）。
 仓库结构：`schoolmate-server`（后端）、`schoolmate-web`（前端）、`sql/`（建表脚本）、`docs/`（设计文档与回归测试脚本）。
 
+## v3 模块（通知中心 / 时光胶囊 / 找回密码）
+- 建表顺序：`init.sql` → `upgrade.sql` → `v2-init.sql` → `upgrade-v3.sql`（通知表）。**全库 21 张表、18 个 Controller、83 个 REST 接口**。`api.md` 的口径不要手抄，从 `/api/v3/api-docs` 导出。
+- **`init.sql` / `v2-init.sql` 建表前会 DROP；`upgrade*.sql` 用 CREATE TABLE IF NOT EXISTS。** 所以 `init.sql` 只种 2 个用户（admin/zhangsan）；lisi/wangwu 是历次测试注册的。整库重建要 `DROP DATABASE`（`reset-demo.sh` 就是这么做的），否则 notification 会有残留。
+- **通知写入一律放 `TransactionUtil.afterCommit`**，避免幽灵通知；自赞/自评不通知。
+- **`MOMENT_*` 通知的 `bizId` 存 classId 而非 momentId**（前端要跳 `/classes/{classId}?tab=moments`）。
+- **时光胶囊可见性只看 `now >= open_time`，不看 `status`**；`status` 只为定时任务（`@Scheduled` 60s）提供 SEALED→OPENED 边沿以发一次到期通知。SELF 对他人返回 **404**（不暴露存在性）。
+- `spring.mail.host` 不配时 `JavaMailSender` 不存在，用 `ObjectProvider.getIfAvailable()` 降级；`GET /auth/mail-reset-enabled` 让前端决定是否显示邮箱找回。验证码存 JVM Map（单节点）。
+- 前端易错：`ClassVO` 的班级名是 **`className`**（不是 `name`）；班级详情路由是 **`/classes/:id`**（不是 `/class/:id`）。
+
 ## 环境与启动
 - 本地 MySQL：`root` / `1234`，库名 `schoolmate_book`。mysql 客户端在 `/d/MySQL/MySQL Server 8.0/bin/mysql`。
 - 后端：`cd schoolmate-server && mvn spring-boot:run` → `:8080`，**context-path 为 `/api`**（所以 REST 前缀 `/api`，WebSocket 为 `ws://host:8080/api/ws/chat`）。
@@ -33,7 +42,8 @@
 
 ## 待办 / 注意
 - 会话注册表在 JVM 内存中，**仅支持单节点**；集群化需把 `WsSessionRegistry.pushToUser` 改为 Redis Pub/Sub（已预留说明）。
-- 回归脚本：`docs/_test_group.py`（群聊 REST，45 项）、`docs/_test_ws.mjs`（实时链路，25 项）。改完聊天相关代码建议两个都跑一遍。
+- 回归脚本：`docs/_test_v3.py`（通知+胶囊，阶段一 53 项 / `--phase2` 10 项）、`docs/_test_group.py`（群聊 REST，45 项）、`docs/_test_ws.mjs`（实时链路，25 项）、`docs/_test_ws_private.mjs`。改完聊天或 v3 相关代码建议跑一遍。
+  ⚠️ **`_test_group.py` 结尾会解散班级，不要和其他依赖班级的脚本并发跑**。`_test_v3.py --phase2` 需要 `MYSQL_BIN` 指向 mysql 客户端（绕过 `@Future` 直接改库造「已到期」数据）。
 - 写测试时 `clientMsgId` 必须每轮唯一，否则会命中幂等分支导致「推送时有时无」的假故障。
 
 ## 远程部署（2026-09-29 完成）
