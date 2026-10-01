@@ -2,7 +2,7 @@
 
 # 大学同学录 · schoolmate_book
 
-**把「班级」装进浏览器** —— 班级主页 · 留言墙 · 相册 · 动态时间轴 · 实时聊天
+**把「班级」装进浏览器** —— 班级主页 · 留言墙 · 相册 · 动态时间轴 · 实时聊天 · 通知中心 · 时光胶囊
 
 一个前后端分离的校园同学录全栈项目：后端是严格三层的 Spring Boot 3 服务，前端是 5 套主题可切换的 Vue 3 单页应用。
 
@@ -35,6 +35,8 @@
 - 统一响应契约 `{ code, message, data }` + 全局异常处理 + 语义化错误码
 - JWT 无状态鉴权（拦截器 + ThreadLocal 用户上下文）
 - WebSocket 原生协议实现实时私聊 / 群聊，含未读数、已读回执、消息撤回
+- **通知中心**：把好友申请、点赞、评论、胶囊到期聚合成一个铃铛入口，未读数走 WebSocket 实时推送
+- **时光胶囊**：写给未来的自己或全班的一封信，到点前内容对任何人（含写信人）都不可见
 - 5 套主题全部由 CSS 变量驱动，切换主题只改一个 `data-theme` 属性
 - 一套**免 sudo 便携部署**脚本：没有 root、装不了系统包也能把整套服务跑起来并穿透到公网
 
@@ -98,11 +100,15 @@
 | **好友体系** | 用户搜索、发送申请、同意 / 拒绝、待处理计数、备注、解除关系、关系查询 |
 | **实时聊天** | 私聊 + 群聊，WebSocket 推送新消息、未读数、已读回执、消息撤回、断线增量拉取 |
 | **班级群联动** | 创建班级时自动建立班级群与群会话，成员入班即入群 |
+| **通知中心** | 好友申请 / 通过、动态被赞、动态被评论、胶囊到期统一聚合；未读数实时角标、单条已读、全部已读、按类型跳转 |
+| **时光胶囊** | 写给未来的自己（SELF，仅本人可见）或写给全班（PUBLIC，班级成员可见）；开启时间必须是将来，**到期前 content 一律不下发**，定时任务到点置为已开启并通知写信人 |
+| **找回密码** | 邮箱验证码找回（6 位、10 分钟有效、60 秒防重发，未配 SMTP 时自动隐藏入口）+ 管理员后台一键重置 |
 | **主题装扮** | 🌸 樱の和风 · 🌌 星海夜航 · 💜 紫夜霓虹 · 🌿 薄荷森屿 · 🌇 暮色橘颂 |
 | **H5 移动端** | 独立的手机端同学录页面 |
-| **后台管理** | 数据概览、用户启停、内容审核（留言 / 动态 / 照片） |
+| **后台管理** | 数据概览、用户启停、密码重置、内容审核（留言 / 动态 / 照片） |
 
-> 📌 另有一张 `time_capsule`（时光胶囊）表与实体已随 v2 建好，但接口与页面尚未实现，列在[路线图](#-路线图与已知限制)中。
+> 🔒 **通知写入都在事务提交后触发**（`TransactionUtil.afterCommit`），避免「推送了但事务回滚」的幽灵通知；
+> 「自己赞自己 / 自己评论自己」不会产生通知。
 
 ---
 
@@ -118,7 +124,7 @@
 | **前端框架** | Vue 3.5（Composition API）· Vue Router 4 · Pinia |
 | **构建 / UI** | Vite 5 · Element Plus 2.8 · `@element-plus/icons-vue` |
 | **网络** | Axios（请求 / 响应拦截器统一处理 Token 与错误）· 原生 WebSocket |
-| **数据库** | MySQL 8.0（`utf8mb4`），20 张表 |
+| **数据库** | MySQL 8.0（`utf8mb4`），21 张表 |
 | **运行环境** | JDK 17 · Maven 3.9+ · Node 18+ |
 
 ---
@@ -144,8 +150,9 @@ flowchart LR
         Interceptor --> Controller --> Service --> Mapper
     end
 
-    DB[("MySQL 8.0<br/>20 张表")]
+    DB[("MySQL 8.0<br/>21 张表")]
     Disk["本地磁盘<br/>upload/ 图片存储"]
+    Sched["@Scheduled 定时任务<br/>时光胶囊到期开启"]
 
     SPA -->|"REST（JSON）"| Proxy
     WSC -.->|"ws 升级"| Proxy
@@ -153,6 +160,7 @@ flowchart LR
     Mapper --> DB
     Service --> Disk
     Service -.->|"推送消息"| WSC
+    Sched --> Service
 ```
 
 > 前端把 `/api`（含 WebSocket 升级）统一代理到后端，因此**内网穿透只需暴露 5173 一个端口**。
@@ -166,8 +174,8 @@ flowchart LR
 | **Mapper** | 单表 CRUD 与条件查询 | 跨表业务编排 |
 
 ```
-controller/           16 个控制器（后台接口集中在 controller/admin/）
-service/ + service/impl/   11 个业务接口与实现
+controller/           18 个控制器（后台接口集中在 controller/admin/）
+service/ + service/impl/   13 个业务接口与实现
 mapper/               MyBatis-Plus BaseMapper 扩展
 entity/ dto/ vo/      实体 / 入参 / 出参，实体不出现在接口签名上
 ws/                   ChatWebSocketHandler · WsSessionRegistry · WsFrame
@@ -212,6 +220,35 @@ stateDiagram-v2
     PASSED --> [*]: 对外可见
 ```
 
+### 时光胶囊状态机
+
+`status` 字段**不参与可见性判定**（可见性只看 `now >= open_time`），它唯一的职责是给定时任务
+提供一个「从未知到已知」的状态跃迁触发点 —— 只有跨越 SEALED → OPENED 那一刻才发一次到期通知。
+
+```mermaid
+stateDiagram-v2
+    [*] --> SEALED: 写信并封存
+    SEALED --> OPENED: 定时任务扫到 open_time 已过
+    SEALED --> [*]: 写信人撤回
+    OPENED --> [*]: 内容永久可见，不可删除
+```
+
+```mermaid
+sequenceDiagram
+    participant T as @Scheduled（60s 一轮）
+    participant S as CapsuleService
+    participant N as NotificationService
+    participant W as WebSocket
+    participant U as 写信人
+
+    T->>S: 扫描 status=SEALED 且 open_time <= now
+    S->>S: 置为 OPENED
+    S->>N: notify(CAPSULE_OPENED)
+    N->>N: 落库 notification
+    N->>W: 事务提交后推送 NOTIFICATION 帧
+    W-->>U: 铃铛角标 +1
+```
+
 ---
 
 ## 📁 目录结构
@@ -238,15 +275,16 @@ schoolmate_book/
 │   ├── vite.config.js                      # 代理、端口、静态资源缓存策略
 │   ├── public/images/                      # 站点图片（WebP）
 │   └── src/
-│       ├── api/                            # 按资源拆分的接口定义（10 个模块）
+│       ├── api/                            # 按资源拆分的接口定义（12 个模块）
 │       ├── router/                         # 路由表 + 登录 / 管理员守卫
-│       ├── stores/                         # Pinia：user · chat · theme
+│       ├── stores/                         # Pinia：user · chat · theme · notification
 │       ├── utils/                          # axios 封装 / WebSocket 客户端
-│       └── views/                          # 页面：auth · class · chat · contact · profile · settings · h5 · admin
+│       └── views/                          # 页面：auth · class · chat · contact · notification · capsule · profile · settings · h5 · admin
 ├── sql/
 │   ├── init.sql                            # 建库 + 11 张基础表 + 种子数据
 │   ├── upgrade.sql                         # 增量升级：资料扩展字段 / 点赞表 / 毕业日期
-│   └── v2-init.sql                         # v2 模块：好友 + 群聊 + 会话 + 时光胶囊表（8 张表）
+│   ├── v2-init.sql                         # v2 模块：好友 + 群聊 + 会话 + 时光胶囊表（8 张表）
+│   └── upgrade-v3.sql                      # v3 模块：通知中心表（1 张表）
 ├── docs/                                   # 数据库设计、接口契约、回归脚本
 ├── images/                                 # README 界面截图（WebP）
 ├── scripts/                                # 图片 WebP 化与压缩
@@ -269,16 +307,17 @@ schoolmate_book/
 ### 1️⃣ 初始化数据库
 
 ```bash
-mysql -uroot -p < sql/init.sql       # 建库 + 11 张基础表 + 种子数据
-mysql -uroot -p < sql/upgrade.sql    # 增量：资料扩展字段 / 点赞表 / 毕业日期
-mysql -uroot -p < sql/v2-init.sql    # 增量：好友 / 群聊 / 会话（8 张表）
+mysql -uroot -p < sql/init.sql          # 建库 + 11 张基础表 + 种子数据
+mysql -uroot -p < sql/upgrade.sql       # 增量：资料扩展字段 / 点赞表 / 毕业日期
+mysql -uroot -p < sql/v2-init.sql       # 增量：好友 / 群聊 / 会话 / 时光胶囊（8 张表）
+mysql -uroot -p < sql/upgrade-v3.sql    # 增量：通知中心（1 张表）
 ```
 
-三个脚本按 `init.sql` → `upgrade.sql` → `v2-init.sql` 的顺序执行。
+四个脚本按 `init.sql` → `upgrade.sql` → `v2-init.sql` → `upgrade-v3.sql` 的顺序执行。
 
-> ⚠️ **执行前请留意**：`init.sql` 在每张表建表前会先 `DROP TABLE`（**会清空既有数据**），
-> 仅用于首次初始化或重建演示环境；`upgrade.sql` 为 `ALTER TABLE` 字段增量脚本，同样只需执行一次。
-> 只有 `v2-init.sql` 使用 `CREATE TABLE IF NOT EXISTS`，可重复执行。
+> ⚠️ **执行前请留意**：`init.sql` 与 `v2-init.sql` 在每张表建表前会先 `DROP TABLE`
+> （**会清空既有数据**），仅用于首次初始化或重建环境；`upgrade.sql`、`upgrade-v3.sql`
+> 是字段/新表增量脚本，用 `CREATE TABLE IF NOT EXISTS` 保证可重复执行，但也不会清理已有数据。
 
 ### 2️⃣ 启动后端
 
@@ -325,24 +364,26 @@ npm run dev
 
 ## 📡 接口一览
 
-共 **70 个 REST 接口**，完整契约见 [`docs/api.md`](docs/api.md)，或在 Knife4j 中在线调试。
+共 **83 个 REST 接口**，完整契约见 [`docs/api.md`](docs/api.md)，或在 Knife4j 中在线调试。
 
 | 分组 | 前缀 | 主要能力 |
 |---|---|---|
-| 认证 | `/auth` | 注册、登录、当前用户 |
+| 认证 | `/auth` | 注册、登录、当前用户、邮箱验证码找回密码 |
 | 用户 | `/users` | 账号信息、个人资料、头像上传 |
-| 班级 | `/classes` | 创建 / 列表 / 详情 / 加入 / 成员管理 / 解散 |
+| 班级 | `/classes` | 创建 / 列表 / 详情 / 加入 / 成员管理 / 生日提醒 / 解散 |
 | 留言 | `/classes/{id}/messages` · `/messages` | 发布、分页、删除 |
 | 相册 | `/classes/{id}/albums` · `/albums` · `/photos` | 相册与照片管理 |
 | 动态 | `/classes/{id}/moments` · `/moments` · `/comments` | 动态、评论、点赞 |
 | 好友 | `/friends` | 搜索、申请、审批、备注、解除关系 |
 | 聊天 | `/chat` | 会话列表、消息收发、已读、撤回 |
 | 群组 | `/groups` | 创建群、我加入的群、群资料、成员管理、退群、解散 |
+| 通知中心 | `/notifications` | 分页列表、未读数、单条已读、全部已读 |
+| 时光胶囊 | `/capsules` | 写信封存、我的信箱、班级胶囊墙、详情、撤回 |
 | 文件 | `/files/upload` | 图片上传（白名单 + 10MB） |
-| 后台 | `/admin` | 用户分页、启停、统计、内容审核 |
+| 后台 | `/admin` | 用户分页、启停、重置密码、统计、内容审核 |
 | 实时通道 | `ws://host:8080/api/ws/chat?token=xxx` | WebSocket 消息推送 |
 
-除注册 / 登录外，所有接口需在请求头携带 `Authorization: Bearer {token}`。
+除注册 / 登录 / 找回密码外，所有接口需在请求头携带 `Authorization: Bearer {token}`。
 
 ---
 
@@ -367,8 +408,32 @@ bash ~/schoolmate_book/deploy/stop-all.sh       # 全部停止
 | 文档 | 内容 |
 |---|---|
 | [`docs/db-design.md`](docs/db-design.md) | 表结构设计、参考项目分析结论、审核状态机 |
-| [`docs/api.md`](docs/api.md) | 接口契约速查、错误码、数据格式约定 |
+| [`docs/api.md`](docs/api.md) | 83 个接口的契约速查、错误码、数据格式约定 |
 | [`deploy/README.md`](deploy/README.md) | 便携部署与运维（含公网穿透、性能与限流注意事项） |
+
+### 回归脚本
+
+`docs/` 下三个脚本都支持用环境变量覆盖目标环境（`TEST_BASE` / `TEST_ORIGIN` / `TEST_WS`）：
+
+| 脚本 | 覆盖范围 |
+|---|---|
+| [`docs/_test_v3.py`](docs/_test_v3.py) | 通知中心与时光胶囊，**63 项**（含到期可见性与定时任务，分两阶段执行） |
+| [`docs/_test_group.py`](docs/_test_group.py) | 群聊 REST 全流程，45 项 |
+| [`docs/_test_ws_private.mjs`](docs/_test_ws_private.mjs) | 私聊实时链路（WebSocket 双向收发 + ACK） |
+
+```bash
+python docs/_test_v3.py            # 阶段一：REST 全流程
+python docs/_test_v3.py --phase2   # 阶段二：改库把 open_time 设到过去，验证到期可见 + 定时任务
+python docs/_test_group.py
+node docs/_test_ws_private.mjs
+```
+
+> ⚠️ 两个坑：
+> 1. 回归脚本**必须带 `Origin` 头**（脚本已内置）。浏览器在非 GET 请求上一定会自动带 `Origin`，
+>    不带的测试会漏掉整整一类 CORS 缺陷 —— 曾经 45 项全过，却掩盖了「浏览器里一点登录就报错」。
+> 2. 用公网穿透地址跑密集请求会**误报**：natapp 免费隧道对突发连接数限流（返回
+>    `429 Too much connections in one mintue`）。回归时请用 `TEST_BASE` 指向服务器本机
+>    （经 SSH 端口转发），再用 `TEST_ORIGIN` 模拟穿透域名。
 
 ---
 
@@ -388,14 +453,21 @@ bash ~/schoolmate_book/deploy/stop-all.sh       # 全部停止
 - 在线状态与会话注册表存在 JVM 内存中，**仅支持单节点部署**；多实例需改造为 Redis 发布订阅
 - 图片存本地磁盘，未接入对象存储，多实例部署需先解决共享存储
 - 前端主包体积偏大（Element Plus 全量引入 + 全量图标注册），仍有按需引入的优化空间
+- 时光胶囊到期通知依赖 `@Scheduled` 扫描，**多实例下会重复发通知**，集群化需引入分布式锁（如 ShedLock）
+- 找回密码的邮箱验证码存在 JVM 内存 `Map` 中，单节点可用，重启即失效；集群化需落 Redis
 
 **后续计划**
 
-- [ ] **时光胶囊**：补齐写信 / 封存 / 到期开启的接口与页面（`time_capsule` 表与实体已就绪）
+- [ ] 班级公告（班长 / 管理员发置顶公告）
+- [ ] 留言与评论支持 `@` 提醒，走通知中心 + WebSocket 推送
+- [ ] 毕业去向标记 + ECharts 数据看板（去向分布 / 生源地 / 星座）
+- [ ] 通讯录导出 Excel（EasyExcel 流式导出）
 - [ ] Element Plus 按需引入，降低首屏体积
+- [ ] 上传文件 magic number 校验（当前只查后缀）
+- [ ] 接口限流 + Refresh Token（当前 JWT 24 小时过期需重新登录）
 - [ ] 图片上传接入对象存储 / CDN
 - [ ] 会话在线状态迁移至 Redis，支持多实例
-- [ ] 补充单元测试与接口自动化测试
+- [ ] 补充 Service 层单元测试与 CI 流水线
 
 ---
 
