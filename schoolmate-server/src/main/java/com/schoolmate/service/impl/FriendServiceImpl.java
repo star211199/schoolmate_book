@@ -18,6 +18,7 @@ import com.schoolmate.mapper.UserMapper;
 import com.schoolmate.mapper.UserProfileMapper;
 import com.schoolmate.service.ChatService;
 import com.schoolmate.service.FriendService;
+import com.schoolmate.service.NotificationService;
 import com.schoolmate.utils.TransactionUtil;
 import com.schoolmate.vo.friend.FriendRequestVO;
 import com.schoolmate.vo.friend.FriendVO;
@@ -83,6 +84,9 @@ public class FriendServiceImpl extends ServiceImpl<FriendshipMapper, Friendship>
 
     @Resource
     private WsSessionRegistry wsSessionRegistry;
+
+    @Resource
+    private NotificationService notificationService;
 
     /* ==================== 好友列表与维护 ==================== */
 
@@ -245,6 +249,11 @@ public class FriendServiceImpl extends ServiceImpl<FriendshipMapper, Friendship>
         afterCommit(() -> wsSessionRegistry.pushToUser(toUserId,
             WsFrame.of(WsFrameType.S2C_FRIEND_REQUEST, payload)));
 
+        // 通知中心落库：对方离线时也能在铃铛里看到这条申请
+        notificationService.notify(toUserId, NotificationService.TYPE_FRIEND_REQUEST,
+            displayName(fromUser) + " 请求加你为好友", message,
+            NotificationService.BIZ_FRIEND, request.getId(), fromUserId);
+
         return request.getId();
     }
 
@@ -309,6 +318,12 @@ public class FriendServiceImpl extends ServiceImpl<FriendshipMapper, Friendship>
         payload.put("sessionId", sessionId);
         afterCommit(() -> wsSessionRegistry.pushToUser(otherId,
             WsFrame.of(WsFrameType.S2C_FRIEND_ACCEPTED, payload)));
+
+        // 通知中心落库：告知原申请人「对方已同意」
+        User accepter = userMapper.selectById(userId);
+        notificationService.notify(otherId, NotificationService.TYPE_FRIEND_ACCEPTED,
+            displayName(accepter) + " 同意了你的好友申请", null,
+            NotificationService.BIZ_FRIEND, requestId, userId);
     }
 
     @Override
@@ -474,6 +489,14 @@ public class FriendServiceImpl extends ServiceImpl<FriendshipMapper, Friendship>
             vo.setRealName(realNameMap.get(r.getFromUserId()));
             return vo;
         }).toList();
+    }
+
+    /** 展示名：优先昵称，其次账号，都拿不到时兜底「有人」 */
+    private String displayName(User user) {
+        if (user == null) {
+            return "有人";
+        }
+        return StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername();
     }
 
     /** 事务提交后执行，避免推送了但事务回滚 */

@@ -43,6 +43,8 @@ public final class WsFrameType {
     public static final String S2C_GROUP_CHANGED = "GROUP_CHANGED";
     /** 好友上下线 */
     public static final String S2C_ONLINE_STATUS = "ONLINE_STATUS";
+    /** 通知中心新通知（好友申请/点赞/评论/胶囊到期等） */
+    public static final String S2C_NOTIFICATION = "NOTIFICATION";
     /** 心跳响应 */
     public static final String S2C_PONG = "PONG";
     /** 错误帧 */

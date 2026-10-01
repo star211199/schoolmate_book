@@ -21,6 +21,7 @@ import com.schoolmate.mapper.MomentLikeMapper;
 import com.schoolmate.mapper.MomentMapper;
 import com.schoolmate.service.ClassService;
 import com.schoolmate.service.MomentService;
+import com.schoolmate.service.NotificationService;
 import com.schoolmate.service.UserService;
 import com.schoolmate.utils.FileUploadUtil;
 import com.schoolmate.vo.moment.CommentVO;
@@ -56,6 +57,9 @@ public class MomentServiceImpl extends ServiceImpl<MomentMapper, Moment> impleme
 
     @Resource
     private ClassService classService;
+
+    @Resource
+    private NotificationService notificationService;
 
     @Resource
     private UserService userService;
@@ -161,7 +165,23 @@ public class MomentServiceImpl extends ServiceImpl<MomentMapper, Moment> impleme
         comment.setParentId(dto.getParentId());
         commentMapper.insert(comment);
 
-        return convertToCommentVO(comment, userService.getById(userId));
+        // 通知中心：回复评论时通知被回复者，否则通知动态作者；自己评论自己不通知
+        User commenter = userService.getById(userId);
+        String commenterName = displayName(commenter);
+        if (comment.getParentId() != null) {
+            Comment parent = commentMapper.selectById(comment.getParentId());
+            if (parent != null) {
+                notificationService.notify(parent.getUserId(), NotificationService.TYPE_MOMENT_COMMENT,
+                    commenterName + " 回复了你的评论", dto.getContent(),
+                    NotificationService.BIZ_MOMENT, moment.getClassId(), userId);
+            }
+        } else {
+            notificationService.notify(moment.getUserId(), NotificationService.TYPE_MOMENT_COMMENT,
+                commenterName + " 评论了你的动态", dto.getContent(),
+                NotificationService.BIZ_MOMENT, moment.getClassId(), userId);
+        }
+
+        return convertToCommentVO(comment, commenter);
     }
 
     @Override
@@ -199,10 +219,25 @@ public class MomentServiceImpl extends ServiceImpl<MomentMapper, Moment> impleme
             like.setMomentId(momentId);
             like.setUserId(userId);
             momentLikeMapper.insert(like);
+
+            // 通知中心：仅「点赞」时通知动态作者，取消点赞不通知（自己赞自己也不通知）
+            // bizId 存 classId，前端点击通知可直接跳到班级主页的动态区
+            notificationService.notify(moment.getUserId(), NotificationService.TYPE_MOMENT_LIKE,
+                displayName(userService.getById(userId)) + " 赞了你的动态", null,
+                NotificationService.BIZ_MOMENT, moment.getClassId(), userId);
         }
 
         MomentVO vo = convertToVO(moment, userService.getById(moment.getUserId()));
         return vo;
+    }
+
+    /** 展示名：优先昵称，其次账号，都拿不到时兜底「有人」 */
+    private String displayName(User user) {
+        if (user == null) {
+            return "有人";
+        }
+        return user.getNickname() != null && !user.getNickname().isEmpty()
+            ? user.getNickname() : user.getUsername();
     }
 
     /** 图片 URL 列表序列化为 JSON 字符串 */
